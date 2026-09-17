@@ -1,0 +1,1595 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KelasAktif - Role Assigner & Team Tracker Gen Alpha</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#eef2ff', 100: '#e0e7ff', 500: '#6366f1',
+                            600: '#4f46e5', 700: '#4338ca',
+                        },
+                        role: {
+                            writer: '#3b82f6', checker: '#10b981', timer: '#f59e0b',
+                            speaker: '#ec4899', leader: '#8b5cf6', cleaner: '#14b8a6'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        outfit: ['Outfit', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #0f172a; color: #f8fafc; }
+        .heading-font { font-family: 'Outfit', sans-serif; }
+        .glass-card { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); }
+        .glass-card-light { background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.08); }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: rgba(15, 23, 42, 0.6); }
+        ::-webkit-scrollbar-thumb { background: rgba(99, 102, 241, 0.4); border-radius: 9999px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(99, 102, 241, 0.8); }
+        @keyframes shufflePulse {
+            0% { transform: scale(1) rotate(0deg); }
+            25% { transform: scale(1.03) rotate(-1deg); }
+            50% { transform: scale(0.97) rotate(1deg); }
+            75% { transform: scale(1.02) rotate(-0.5deg); }
+            100% { transform: scale(1) rotate(0deg); }
+        }
+        .shuffling { animation: shufflePulse 0.3s ease-in-out infinite; }
+        @keyframes starGlow {
+            0%, 100% { filter: drop-shadow(0 0 5px rgba(245, 158, 11, 0.6)); }
+            50% { filter: drop-shadow(0 0 15px rgba(245, 158, 11, 0.9)); }
+        }
+        .star-active { animation: starGlow 2s infinite; }
+        @keyframes toastSlide {
+            from { transform: translate(-50%, 20px); opacity: 0; }
+            to { transform: translate(-50%, 0); opacity: 1; }
+        }
+        #classroom-toast:not(.hidden) { animation: toastSlide 0.3s ease-out; }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col selection:bg-brand-500 selection:text-white">
+
+<header class="border-b border-slate-800 bg-slate-900/90 backdrop-blur sticky top-0 z-40 px-4 py-3">
+    <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-600 to-pink-500 flex items-center justify-center text-white font-bold text-xl shadow-lg shadow-brand-500/30">
+                <i class="fa-solid fa-users-gear"></i>
+            </div>
+            <div>
+                <h1 class="heading-font text-lg font-bold bg-gradient-to-r from-white via-indigo-200 to-indigo-400 bg-clip-text text-transparent">
+                    KelasAktif <span class="text-xs px-2 py-0.5 rounded-full bg-brand-500/20 text-brand-300 border border-brand-500/30 font-normal">Gen Alpha PPG</span>
+                </h1>
+                <p class="text-xs text-slate-400">Inovasi Kelompok Lintas Mapel SD (Kelas 1-6)</p>
+            </div>
+        </div>
+
+        <div class="flex items-center bg-slate-800 p-1 rounded-xl border border-slate-700/60 text-xs font-medium">
+            <button id="btn-view-split" onclick="switchView('split')" class="px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-all bg-brand-600 text-white shadow">
+                <i class="fa-solid fa-columns"></i><span class="hidden sm:inline">Split View</span>
+            </button>
+            <button id="btn-view-hp" onclick="switchView('hp')" class="px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-all text-slate-400 hover:text-white">
+                <i class="fa-solid fa-mobile-screen"></i><span>HP Guru</span>
+            </button>
+            <button id="btn-view-projector" onclick="switchView('projector')" class="px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-all text-slate-400 hover:text-white">
+                <i class="fa-solid fa-tv"></i><span>Proyektor Kelas</span>
+            </button>
+        </div>
+
+        <div class="flex items-center gap-2">
+            <button onclick="toggleAudio()" id="btn-sound" class="p-2 w-9 h-9 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 flex items-center justify-center transition" title="Toggle Suara">
+                <i class="fa-solid fa-volume-high" id="icon-sound"></i>
+            </button>
+            <button onclick="openProfileModal()" class="px-3 py-1.5 rounded-lg bg-indigo-950/80 hover:bg-indigo-900 border border-indigo-700/60 text-xs font-semibold text-indigo-200 flex items-center gap-1.5 transition shadow-sm">
+                <i class="fa-solid fa-user-graduate text-amber-400"></i><span>Profil Pembuat</span>
+            </button>
+            <button onclick="openConfigModal()" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-semibold text-slate-200 flex items-center gap-1.5 transition">
+                <i class="fa-solid fa-sliders text-brand-400"></i><span>Pengaturan Kelas</span>
+            </button>
+        </div>
+    </div>
+</header>
+
+<main class="flex-1 p-3 md:p-6 max-w-7xl w-full mx-auto grid grid-cols-1 md:grid-cols-12 gap-6 transition-all" id="app-viewport">
+    
+    <!-- LEFT PANEL -->
+    <section id="panel-hp" class="md:col-span-5 glass-card rounded-2xl p-4 md:p-5 flex flex-col gap-5 border border-slate-700/60 shadow-2xl">
+        <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+            <div class="flex items-center gap-2">
+                <span class="w-3 h-3 rounded-full bg-emerald-500 animate-pulse"></span>
+                <h2 class="heading-font text-base font-bold text-white flex items-center gap-2">
+                    <i class="fa-solid fa-mobile-screen-button text-brand-400"></i>
+                    Panel Kontrol HP Wali Kelas
+                </h2>
+            </div>
+            <span id="label-active-class" class="text-xs font-semibold px-2.5 py-1 rounded-full bg-slate-800 text-indigo-300 border border-slate-700">
+                Kelas 4-6 SD (Tinggi)
+            </span>
+        </div>
+
+        <div class="bg-gradient-to-br from-indigo-900/40 to-slate-900/80 border border-indigo-500/30 rounded-xl p-4 flex flex-col gap-3">
+            <div class="flex justify-between items-center">
+                <div>
+                    <h3 class="font-bold text-sm text-indigo-200">1. Pembagian Peran</h3>
+                    <p class="text-xs text-slate-400">Acak peran otomatis ke seluruh kelompok</p>
+                </div>
+                <i class="fa-solid fa-dice-d20 text-2xl text-indigo-400"></i>
+            </div>
+            <button onclick="triggerSpinRoles()" id="btn-spin" class="w-full py-3 px-4 bg-gradient-to-r from-brand-600 via-indigo-600 to-purple-600 hover:from-brand-500 hover:to-purple-500 active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed text-white font-bold text-sm rounded-xl shadow-lg shadow-indigo-500/25 flex items-center justify-center gap-2 transition duration-200">
+                <i class="fa-solid fa-shuffle text-base"></i>
+                <span>Acak & Bagikan Peran Sekarang!</span>
+            </button>
+        </div>
+
+        <div class="glass-card-light rounded-xl p-3.5 flex flex-col gap-2.5">
+            <label for="input-mission" class="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
+                <i class="fa-solid fa-bullhorn text-amber-400"></i>
+                Tulis Misi / Instruksi Utama Kelas:
+            </label>
+            <div class="flex gap-2">
+                <input type="text" id="input-mission" value="Diskusi Kelompok: Analisis Rantai Makanan & Buat Diagramnya!" placeholder="Contoh: Kerjakan Soal Hal 45..." class="flex-1 bg-slate-900/90 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-brand-500">
+                <button onclick="updateMission()" class="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-xs font-semibold border border-slate-700 transition">
+                    Kirim
+                </button>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2.5">
+            <div class="glass-card-light rounded-xl p-3 flex flex-col justify-between gap-2">
+                <div class="text-xs font-semibold text-slate-300 flex items-center justify-between">
+                    <span><i class="fa-solid fa-clock text-indigo-400 mr-1"></i> Timer Fokus</span>
+                    <span id="timer-status-badge" class="text-[10px] px-1.5 py-0.5 rounded bg-slate-800 text-slate-400">Ready</span>
+                </div>
+                <div class="flex items-center gap-1.5 my-0.5">
+                    <input type="number" id="input-timer-mins" min="1" max="120" value="15" class="w-14 bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-xs text-white text-center focus:outline-none focus:border-brand-500">
+                    <span class="text-[11px] text-slate-400">menit</span>
+                    <button onclick="applyCustomTimer()" class="px-2 py-1 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-[11px] font-semibold transition">Set</button>
+                </div>
+                <div class="flex items-center gap-1.5">
+                    <button onclick="toggleTimer()" id="btn-timer-toggle" class="flex-1 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-bold transition">
+                        <i class="fa-solid fa-play mr-1"></i> Start
+                    </button>
+                    <button onclick="resetTimer()" class="p-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs transition border border-slate-700" title="Reset">
+                        <i class="fa-solid fa-rotate-left"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div class="glass-card-light rounded-xl p-3 flex flex-col justify-between gap-2">
+                <div class="text-xs font-semibold text-slate-300 flex items-center justify-between">
+                    <span><i class="fa-solid fa-bell text-rose-400 mr-1"></i> Suara Isyarat</span>
+                </div>
+                <div class="flex gap-1.5">
+                    <button onclick="playSFX('bell')" class="flex-1 py-1.5 bg-slate-800 hover:bg-slate-700 text-amber-300 rounded-lg text-xs font-semibold border border-slate-700 transition" title="Bel Perhatian">🔔 Bel</button>
+                    <button onclick="playSFX('cheer')" class="flex-1 py-1.5 bg-slate-800 hover:bg-slate-700 text-pink-300 rounded-lg text-xs font-semibold border border-slate-700 transition" title="Tepuk Tangan">👏 Sorak</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="flex-1 flex flex-col gap-3">
+            <div class="flex items-center justify-between">
+                <h3 class="font-bold text-xs uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                    <i class="fa-solid fa-star text-amber-400"></i> Apresiasi Peran Kelompok
+                </h3>
+                <span class="text-[11px] text-slate-500">Apresiasi Poin Kelompok</span>
+            </div>
+            <div id="teacher-group-list" class="space-y-2.5 overflow-y-auto max-h-[320px] pr-1"></div>
+        </div>
+
+        <div class="pt-2 border-t border-slate-800 flex justify-between items-center text-xs">
+            <button onclick="openSummaryModal()" class="text-indigo-400 hover:text-indigo-300 font-medium flex items-center gap-1">
+                <i class="fa-solid fa-chart-pie"></i> Lihat Rekapitulasi Bintang
+            </button>
+        </div>
+    </section>
+
+    <!-- RIGHT PANEL -->
+    <section id="panel-projector" class="md:col-span-7 glass-card rounded-2xl p-4 md:p-6 flex flex-col gap-6 border border-slate-700/60 shadow-2xl relative overflow-hidden bg-slate-950/80">
+        <div class="absolute -top-24 -right-24 w-72 h-72 bg-brand-600/10 rounded-full blur-3xl pointer-events-none"></div>
+        <div class="absolute -bottom-24 -left-24 w-72 h-72 bg-pink-600/10 rounded-full blur-3xl pointer-events-none"></div>
+
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-slate-900/90 border border-slate-800 rounded-xl p-4 shadow-inner relative z-10">
+            <div>
+                <div class="flex items-center gap-2">
+                    <span class="px-2.5 py-0.5 rounded-md bg-amber-500/20 text-amber-300 border border-amber-500/30 text-xs font-bold uppercase tracking-wider">
+                        <i class="fa-solid fa-bullhorn mr-1"></i> Misi Utama Hari Ini
+                    </span>
+                </div>
+                <h2 id="display-mission-text" class="heading-font text-base md:text-xl font-bold text-white mt-1">
+                    Diskusi Kelompok: Analisis Rantai Makanan & Buat Diagramnya!
+                </h2>
+            </div>
+
+            <div class="flex items-center gap-3 bg-slate-950 px-4 py-2.5 rounded-xl border border-slate-800 shadow-md">
+                <div class="text-right">
+                    <span class="text-[10px] uppercase font-semibold text-slate-400 block tracking-wider">Sisa Waktu Sesi</span>
+                    <span id="display-timer" class="heading-font text-2xl font-black text-amber-400 tracking-wider">15:00</span>
+                </div>
+                <div class="w-10 h-10 rounded-full bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 text-lg">
+                    <i class="fa-solid fa-stopwatch" id="icon-timer-display"></i>
+                </div>
+            </div>
+        </div>
+
+        <div id="projector-group-grid" class="grid grid-cols-1 md:grid-cols-2 gap-4 flex-1 relative z-10"></div>
+
+        <div id="classroom-toast" class="hidden absolute bottom-6 left-1/2 -translate-x-1/2 z-30 bg-gradient-to-r from-amber-500 via-pink-500 to-indigo-600 text-white px-6 py-3 rounded-2xl shadow-2xl border-2 border-white/20 flex items-center gap-3">
+            <i class="fa-solid fa-trophy text-2xl text-amber-200"></i>
+            <div>
+                <h4 id="toast-title" class="font-extrabold text-sm heading-font">Selamat Kelompok 1!</h4>
+                <p id="toast-desc" class="text-xs text-amber-100">Mendapatkan +10 Bintang Kerjasama Peran!</p>
+            </div>
+        </div>
+    </section>
+</main>
+
+<!-- MODAL 1: CONFIGURATION -->
+<div id="modal-config" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 hidden items-center justify-center p-4">
+    <div class="glass-card rounded-2xl max-w-2xl w-full p-5 md:p-6 border border-slate-700 shadow-2xl flex flex-col gap-4 max-h-[90vh] overflow-y-auto">
+        <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+            <h3 class="heading-font text-lg font-bold text-white flex items-center gap-2">
+                <i class="fa-solid fa-gear text-brand-400"></i> Pengaturan Kelas, Data Siswa & Peran
+            </h3>
+            <button onclick="closeConfigModal()" class="text-slate-400 hover:text-white text-xl">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+
+        <div class="flex border-b border-slate-800 text-xs font-semibold gap-2 pb-2 overflow-x-auto">
+            <button onclick="switchConfigTab('tab-roster')" id="tab-btn-roster" class="px-3 py-1.5 rounded-lg bg-brand-600 text-white flex items-center gap-1.5 transition whitespace-nowrap">
+                <i class="fa-solid fa-users"></i> 1. Roster & Pembagian Kelompok
+            </button>
+            <button onclick="switchConfigTab('tab-roles')" id="tab-btn-roles" class="px-3 py-1.5 rounded-lg text-slate-400 hover:text-white flex items-center gap-1.5 transition whitespace-nowrap">
+                <i class="fa-solid fa-masks-theater"></i> 2. Form Input Peran
+            </button>
+            <button onclick="switchConfigTab('tab-manual')" id="tab-btn-manual" class="px-3 py-1.5 rounded-lg text-slate-400 hover:text-white flex items-center gap-1.5 transition whitespace-nowrap">
+                <i class="fa-solid fa-pen-to-square"></i> 3. Edit Kelompok Manual
+            </button>
+        </div>
+
+        <div id="tab-roster" class="space-y-4">
+            <div class="space-y-1.5">
+                <label for="input-roster-text" class="text-xs font-semibold text-indigo-300 flex items-center justify-between">
+                    <span><i class="fa-solid fa-clipboard-user mr-1"></i> Form Input Data Seluruh Siswa Kelas:</span>
+                    <span class="text-[10px] text-slate-400 font-normal">Pisahkan nama dengan koma atau baris baru</span>
+                </label>
+                <textarea id="input-roster-text" rows="3" placeholder="Contoh: Aditya, Nabila, Rian, Siti..." class="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-brand-500"></textarea>
+            </div>
+
+            <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-3.5 space-y-3">
+                <h4 class="text-xs font-bold text-slate-200 flex items-center gap-1.5">
+                    <i class="fa-solid fa-calculator text-amber-400"></i> Pengaturan Jumlah Kelompok & Kapasitas Siswa
+                </h4>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                        <label for="input-num-groups" class="text-[11px] font-semibold text-slate-300 block mb-1">Jumlah Kelompok:</label>
+                        <input type="number" id="input-num-groups" min="1" max="12" value="4" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-brand-500">
+                    </div>
+                    <div>
+                        <label for="input-students-per-group" class="text-[11px] font-semibold text-slate-300 block mb-1">Max Siswa Per Kelompok:</label>
+                        <input type="number" id="input-students-per-group" min="1" max="10" value="4" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-brand-500">
+                    </div>
+                </div>
+                <button onclick="autoGenerateGroups()" class="w-full py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs rounded-xl shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-2 transition">
+                    <i class="fa-solid fa-wand-magic-sparkles"></i>
+                    <span>Bagi Kelompok Otomatis dari Data Siswa</span>
+                </button>
+            </div>
+        </div>
+
+        <div id="tab-roles" class="space-y-4 hidden">
+            <div class="space-y-2">
+                <label class="text-xs font-semibold text-slate-300 block">Pilih Sumber & Preset Peran:</label>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                    <button onclick="selectRoleMode('low')" id="preset-btn-low" class="p-2.5 rounded-xl border text-left transition flex flex-col gap-1 bg-slate-800/80 border-slate-700 hover:border-brand-500">
+                        <span class="font-bold text-xs text-indigo-300">🎨 Kelas 1-3 SD</span>
+                        <span class="text-[10px] text-slate-400">4 Peran Visual Sederhana</span>
+                    </button>
+                    <button onclick="selectRoleMode('high')" id="preset-btn-high" class="p-2.5 rounded-xl border text-left transition flex flex-col gap-1 bg-slate-800/80 border-slate-700 hover:border-brand-500">
+                        <span class="font-bold text-xs text-purple-300">🔍 Kelas 4-6 SD</span>
+                        <span class="text-[10px] text-slate-400">4 Peran Keterampilan Proses</span>
+                    </button>
+                    <button onclick="selectRoleMode('custom')" id="preset-btn-custom" class="p-2.5 rounded-xl border text-left transition flex flex-col gap-1 bg-slate-800/80 border-slate-700 hover:border-brand-500">
+                        <span class="font-bold text-xs text-amber-300">✨ Peran Kustom</span>
+                        <span class="text-[10px] text-slate-400">Dibuat Guru Sendiri</span>
+                    </button>
+                </div>
+            </div>
+
+            <div id="custom-role-builder" class="bg-slate-900 border border-slate-800 rounded-xl p-3.5 space-y-3">
+                <h4 class="text-xs font-bold text-amber-300 flex items-center gap-1.5">
+                    <i class="fa-solid fa-plus-circle"></i> Form Input Peran Kustom Baru
+                </h4>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <input type="text" id="input-custom-title" placeholder="Nama Peran (misal: Si Pemimpin)" class="bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white">
+                    <select id="input-custom-icon" class="bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white">
+                        <option value="fa-crown">👑 Ikon Mahkota / Pemimpin</option>
+                        <option value="fa-pen-to-square">📝 Ikon Pensil / Notulis</option>
+                        <option value="fa-magnifying-glass">🔍 Ikon Detektif / Pengecek</option>
+                        <option value="fa-hourglass-half">⏱️ Ikon Jam / Waktu</option>
+                        <option value="fa-chalkboard-user">📢 Ikon Presenter / Bicara</option>
+                        <option value="fa-paintbrush">🎨 Ikon Gambar / Lukis</option>
+                        <option value="fa-broom">🧹 Ikon Rapih / Bersih</option>
+                        <option value="fa-shield-halved">🛡️ Ikon Penjaga / Ketertiban</option>
+                    </select>
+                </div>
+                <input type="text" id="input-custom-mission" placeholder="Instruksi Tugas Peran (misal: Memimpin diskusi)" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white">
+                <button onclick="addCustomRole()" class="w-full py-2 bg-amber-600 hover:bg-amber-500 text-slate-950 font-bold text-xs rounded-lg transition">
+                    + Tambahkan ke Daftar Peran Kustom
+                </button>
+            </div>
+
+            <div class="space-y-2">
+                <h4 class="text-xs font-semibold text-slate-300">Daftar Peran Aktif:</h4>
+                <div id="active-roles-list" class="space-y-2 max-h-[180px] overflow-y-auto pr-1"></div>
+            </div>
+        </div>
+
+        <div id="tab-manual" class="space-y-3 hidden">
+            <div class="flex justify-between items-center">
+                <label class="text-xs font-semibold text-slate-300">Daftar Kelompok & Anggota Siswa:</label>
+                <button onclick="addNewGroup()" class="px-2.5 py-1 bg-brand-600 hover:bg-brand-500 text-white rounded-lg text-xs font-semibold transition flex items-center gap-1">
+                    <i class="fa-solid fa-plus"></i> Tambah Kelompok
+                </button>
+            </div>
+            <div id="config-group-editor" class="space-y-3"></div>
+        </div>
+
+        <div class="pt-3 border-t border-slate-800 flex justify-end gap-2">
+            <button onclick="closeConfigModal()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-semibold border border-slate-700">Batal</button>
+            <button onclick="saveConfiguration()" class="px-5 py-2 bg-brand-600 hover:bg-brand-500 text-white rounded-xl text-xs font-bold shadow-lg shadow-brand-500/20">Simpan & Terapkan</button>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL 2: SUMMARY -->
+<div id="modal-summary" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 hidden items-center justify-center p-4">
+    <div class="glass-card rounded-2xl max-w-lg w-full p-5 md:p-6 border border-slate-700 shadow-2xl flex flex-col gap-4">
+        <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+            <h3 class="heading-font text-lg font-bold text-white flex items-center gap-2">
+                <i class="fa-solid fa-award text-amber-400"></i> Rekapitulasi Bintang Peran Kelas
+            </h3>
+            <button onclick="closeSummaryModal()" class="text-slate-400 hover:text-white text-xl">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+        <p class="text-xs text-slate-300">Berikut rekap pencapaian poin kerjasama kelompok berbasis peran selama pembelajaran berlangsung:</p>
+        <div id="summary-leaderboard" class="space-y-2.5 my-1"></div>
+        <div class="pt-3 border-t border-slate-800 flex justify-between items-center">
+            <button onclick="copySummaryText()" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-xs font-semibold border border-slate-700 flex items-center gap-1.5">
+                <i class="fa-solid fa-copy"></i> Salin Ringkasan
+            </button>
+            <button onclick="closeSummaryModal()" class="px-5 py-2 bg-brand-600 hover:bg-brand-500 text-white rounded-xl text-xs font-bold">Tutup</button>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL 3: PROFILE -->
+<div id="modal-profile" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 hidden items-center justify-center p-4">
+    <div class="glass-card rounded-2xl max-w-lg w-full p-5 md:p-6 border border-slate-700 shadow-2xl flex flex-col gap-4 max-h-[90vh] overflow-y-auto">
+        
+        <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+            <h3 class="heading-font text-lg font-bold text-white flex items-center gap-2">
+                <i class="fa-solid fa-id-card text-brand-400"></i> Profil Pembuat Inovasi PPG
+            </h3>
+            <button onclick="closeProfileModal()" class="text-slate-400 hover:text-white text-xl">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+
+        <div id="profile-view-mode" class="space-y-4">
+            <div class="bg-gradient-to-br from-indigo-900/60 via-slate-900 to-purple-900/40 p-4 rounded-xl border border-indigo-500/30 flex items-center gap-4">
+                <div id="container-prof-photo" class="w-20 h-20 rounded-2xl bg-gradient-to-tr from-brand-600 to-amber-500 flex items-center justify-center text-white font-bold text-2xl shadow-lg border-2 border-white/20 shrink-0 overflow-hidden">
+                    <i class="fa-solid fa-user-graduate"></i>
+                </div>
+                <div class="min-w-0 flex-1">
+                    <span class="px-2 py-0.5 rounded-md bg-amber-500/20 text-amber-300 border border-amber-500/30 text-[10px] font-bold uppercase tracking-wider inline-block">
+                        <i class="fa-solid fa-award mr-1"></i> Inovator PPG Gen Alpha
+                    </span>
+                    <h4 id="disp-prof-name" class="heading-font text-base font-bold text-white mt-1 truncate">Mahasiswa PPG</h4>
+                    <p id="disp-prof-program" class="text-xs text-indigo-300 font-medium truncate">Pendidikan Guru Sekolah Dasar (PGSD)</p>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs">
+                <div class="bg-slate-900/90 p-3 rounded-xl border border-slate-800">
+                    <span class="text-slate-400 block text-[10px] uppercase font-semibold tracking-wider">
+                        <i class="fa-solid fa-id-badge mr-1"></i> NIM / No. UKG
+                    </span>
+                    <span id="disp-prof-nim" class="font-bold text-white mt-1 block truncate">-</span>
+                </div>
+                <div class="bg-slate-900/90 p-3 rounded-xl border border-slate-800">
+                    <span class="text-slate-400 block text-[10px] uppercase font-semibold tracking-wider">
+                        <i class="fa-solid fa-building-columns mr-1"></i> LPTK / Universitas
+                    </span>
+                    <span id="disp-prof-lptk" class="font-bold text-white mt-1 block truncate">-</span>
+                </div>
+                <div class="bg-slate-900/90 p-3 rounded-xl border border-slate-800 sm:col-span-2">
+                    <span class="text-slate-400 block text-[10px] uppercase font-semibold tracking-wider">
+                        <i class="fa-solid fa-school mr-1"></i> Sekolah Praktik / PPL
+                    </span>
+                    <span id="disp-prof-school" class="font-bold text-white mt-1 block truncate">-</span>
+                </div>
+            </div>
+
+            <div class="bg-slate-900/60 p-3.5 rounded-xl border border-slate-800">
+                <span class="text-amber-400 text-xs font-semibold flex items-center gap-1 mb-1.5">
+                    <i class="fa-solid fa-quote-left"></i> Visi Inovasi Pembelajaran:
+                </span>
+                <p id="disp-prof-motto" class="text-xs text-slate-300 italic leading-relaxed">-</p>
+            </div>
+
+            <div class="pt-2 flex justify-between gap-2">
+                <button onclick="resetProfile()" class="px-3 py-1.5 bg-rose-950/60 hover:bg-rose-900/60 text-rose-300 rounded-lg text-xs font-semibold border border-rose-800/60 flex items-center gap-1.5 transition">
+                    <i class="fa-solid fa-rotate-left"></i> Reset
+                </button>
+                <button onclick="enableProfileEdit()" class="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 transition shadow-lg shadow-indigo-500/20">
+                    <i class="fa-solid fa-pen-to-square"></i> Edit Profil
+                </button>
+            </div>
+        </div>
+
+        <div id="profile-edit-mode" class="space-y-3 hidden">
+            <div class="bg-slate-900/60 border border-slate-800 rounded-xl p-3 flex items-center gap-3">
+                <div id="edit-photo-preview" class="w-16 h-16 rounded-xl bg-gradient-to-tr from-brand-600 to-amber-500 flex items-center justify-center text-white font-bold text-xl shadow-lg border-2 border-white/20 shrink-0 overflow-hidden">
+                    <i class="fa-solid fa-user-graduate"></i>
+                </div>
+                <div class="flex-1 space-y-1.5">
+                    <label class="text-[11px] font-semibold text-slate-300 block">Foto Profil:</label>
+                    <div class="flex gap-1.5">
+                        <label class="flex-1 cursor-pointer px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-[11px] font-semibold border border-slate-700 text-center transition">
+                            <i class="fa-solid fa-upload mr-1"></i> Pilih File
+                            <input type="file" id="edit-prof-photo-file" accept="image/*" class="hidden" onchange="handlePhotoUpload(event)">
+                        </label>
+                        <button onclick="clearPhoto()" class="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-rose-300 rounded-lg text-[11px] font-semibold border border-slate-700 transition" title="Hapus Foto">
+                            <i class="fa-solid fa-trash-can"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div>
+                <label class="text-[11px] font-semibold text-slate-300 block mb-1">
+                    <i class="fa-solid fa-user text-brand-400 mr-1"></i> Nama Lengkap & Gelar <span class="text-rose-400">*</span>
+                </label>
+                <input type="text" id="edit-prof-name" placeholder="Contoh: Ahmad Fauzi, S.Pd." class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-brand-500">
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                <div>
+                    <label class="text-[11px] font-semibold text-slate-300 block mb-1">
+                        <i class="fa-solid fa-id-badge text-brand-400 mr-1"></i> NIM / No. UKG <span class="text-rose-400">*</span>
+                    </label>
+                    <input type="text" id="edit-prof-nim" placeholder="202610998877" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-brand-500">
+                </div>
+                <div>
+                    <label class="text-[11px] font-semibold text-slate-300 block mb-1">
+                        <i class="fa-solid fa-graduation-cap text-brand-400 mr-1"></i> Program Studi
+                    </label>
+                    <input type="text" id="edit-prof-program" placeholder="PGSD" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-brand-500">
+                </div>
+            </div>
+
+            <div>
+                <label class="text-[11px] font-semibold text-slate-300 block mb-1">
+                    <i class="fa-solid fa-building-columns text-brand-400 mr-1"></i> LPTK / Perguruan Tinggi
+                </label>
+                <input type="text" id="edit-prof-lptk" placeholder="Contoh: Universitas Negeri Jakarta" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-brand-500">
+            </div>
+
+            <div>
+                <label class="text-[11px] font-semibold text-slate-300 block mb-1">
+                    <i class="fa-solid fa-school text-brand-400 mr-1"></i> Sekolah Tempat PPL / Mengajar
+                </label>
+                <input type="text" id="edit-prof-school" placeholder="Contoh: SDN 01 Menteng" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-brand-500">
+            </div>
+
+            <div>
+                <label class="text-[11px] font-semibold text-slate-300 block mb-1">
+                    <i class="fa-solid fa-quote-left text-brand-400 mr-1"></i> Visi & Kata Pengantar Inovasi
+                </label>
+                <textarea id="edit-prof-motto" rows="3" placeholder="Tuliskan komitmen atau ringkasan inovasi Anda..." class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-xs text-white focus:outline-none focus:border-brand-500 resize-none"></textarea>
+            </div>
+
+            <div class="pt-2 flex justify-end gap-2 border-t border-slate-800">
+                <button onclick="cancelProfileEdit()" class="px-3.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs font-semibold border border-slate-700 transition">
+                    Batal
+                </button>
+                <button onclick="saveProfile()" class="px-4 py-1.5 bg-brand-600 hover:bg-brand-500 text-white font-bold rounded-lg text-xs shadow-lg shadow-brand-500/20 flex items-center gap-1.5 transition">
+                    <i class="fa-solid fa-floppy-disk"></i> Simpan Profil
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL 4: SHARE ROOM -->
+<div id="modal-share" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-[60] hidden items-center justify-center p-4">
+    <div class="glass-card rounded-2xl max-w-md w-full p-6 border border-slate-700 shadow-2xl flex flex-col gap-4">
+        <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+            <h3 class="heading-font text-lg font-bold text-white flex items-center gap-2">
+                <i class="fa-solid fa-wifi text-emerald-400"></i> Bagikan Kode Kelas
+            </h3>
+            <button onclick="closeShareModal()" class="text-slate-400 hover:text-white text-xl">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+
+        <div class="text-center py-4">
+            <p class="text-xs text-slate-400 mb-2">Tampilkan/berikan kode ini ke HP Guru:</p>
+            <div id="share-room-code" class="heading-font text-6xl font-black text-white tracking-[0.3em] bg-slate-900 border-2 border-brand-500/40 rounded-2xl py-6 shadow-inner">
+                ------
+            </div>
+        </div>
+
+        <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-3 space-y-2">
+            <p class="text-[11px] text-slate-400 font-semibold uppercase tracking-wider">Atau bagikan link ini:</p>
+            <input type="text" id="share-room-link" readonly class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-[11px] text-slate-300 font-mono">
+        </div>
+
+        <div class="grid grid-cols-2 gap-2">
+            <button onclick="copyShareCode()" class="py-2.5 bg-brand-600 hover:bg-brand-500 text-white font-bold rounded-xl text-xs flex items-center justify-center gap-1.5 transition">
+                <i class="fa-solid fa-copy"></i> Salin Kode
+            </button>
+            <button onclick="copyShareLink()" class="py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl text-xs flex items-center justify-center gap-1.5 transition">
+                <i class="fa-brands fa-whatsapp"></i> Salin Link
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- FIREBASE SDK -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getDatabase, ref, set, onValue, update, serverTimestamp }
+  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+// For Firebase JS SDK v7.20.0 and later, measurementId is optional
+const firebaseConfig = {
+  apiKey: "AIzaSyDvHbIidzp_bGJoZYrzCU51HL4ui1RuHuY",
+  authDomain: "kelasaktif-93761.firebaseapp.com",
+  databaseURL: "https://kelasaktif-93761-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "kelasaktif-93761",
+  storageBucket: "kelasaktif-93761.firebasestorage.app",
+  messagingSenderId: "921381825144",
+  appId: "1:921381825144:web:1c692930a1e35694665b8d",
+  measurementId: "G-1FLX747Z88"
+};
+
+let app, db;
+try {
+    app = initializeApp(firebaseConfig);
+    db = getDatabase(app);
+    console.log("✅ Firebase terhubung!");
+} catch(e) {
+    console.error("❌ Firebase error:", e);
+    alert("Firebase gagal terhubung. Periksa konfigurasi!");
+}
+
+window.FB = { db, ref, set, onValue, update, serverTimestamp };
+window.dispatchEvent(new Event('firebase-ready'));
+</script>
+
+<!-- MAIN APP LOGIC -->
+<script>
+/* ===================================================================
+ * KELASAKTIF - MULTI-DEVICE SYNC
+ * =================================================================== */
+let audioEnabled = true;
+let roleMode = 'high';
+let timerSeconds = 15 * 60;
+let timerInterval = null;
+let isTimerRunning = false;
+let isSpinning = false;
+
+let roomId = null;
+let isHost = false;
+let syncUnsubscribe = [];
+let firebaseReady = false;
+
+const ROLE_PRESETS = {
+    low: [
+        { id: 'pelukis', title: 'Si Pelukis / Pencatat', icon: 'fa-paintbrush', color: 'bg-blue-500/20 text-blue-300 border-blue-500/40', mission: 'Menulis atau menggambar hasil karya kelompok di kertas.' },
+        { id: 'bicara', title: 'Si Juru Bicara', icon: 'fa-comments', color: 'bg-pink-500/20 text-pink-300 border-pink-500/40', mission: 'Menceritakan hasil diskusi ke depan kelas saat dipanggil Guru.' },
+        { id: 'rapih', title: 'Si Kapten Rapih', icon: 'fa-broom', color: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40', mission: 'Menjaga kebersihan & merapikan pensil/meja kelompok.' },
+        { id: 'senyap', title: 'Si Penjaga Senyap', icon: 'fa-shield-halved', color: 'bg-purple-500/20 text-purple-300 border-purple-500/40', mission: 'Mengingatkan teman agar berbicara pelan dan tenang.' }
+    ],
+    high: [
+        { id: 'notulis', title: 'Notulis Utama', icon: 'fa-pen-to-square', color: 'bg-blue-500/20 text-blue-300 border-blue-500/40', mission: 'Mencatat poin penting jawaban diskusi kelompok.' },
+        { id: 'pengecek', title: 'Pengecek Ketelitian', icon: 'fa-magnifying-glass', color: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40', mission: 'Memastikan semua soal terjawab lengkap dan bebas kekeliruan.' },
+        { id: 'manajer', title: 'Manajer Waktu', icon: 'fa-hourglass-half', color: 'bg-amber-500/20 text-amber-300 border-amber-500/40', mission: 'Mengingatkan sisa waktu pengerjaan tugas kepada teman.' },
+        { id: 'presenter', title: 'Presenter Handal', icon: 'fa-chalkboard-user', color: 'bg-purple-500/20 text-purple-300 border-purple-500/40', mission: 'Memimpin presentasi dan menjawab pertanyaan dari kelas.' }
+    ]
+};
+
+let appState = {
+    mission: "Diskusi Kelompok: Analisis Rantai Makanan & Buat Diagramnya!",
+    allStudentsText: "Aditya, Nabila, Rian, Siti, Budi, Dewi, Fajar, Gita, Hasan, Intan, Joko, Lani, Maya, Niko, Oky, Putri",
+    customRoles: [
+        { id: 'c1', title: 'Si Pemimpin', icon: 'fa-crown', color: 'bg-amber-500/20 text-amber-300 border-amber-500/40', mission: 'Memimpin jalannya diskusi kelompok.' },
+        { id: 'c2', title: 'Si Pencatat', icon: 'fa-pen-to-square', color: 'bg-blue-500/20 text-blue-300 border-blue-500/40', mission: 'Mencatat hasil jawaban kelompok.' },
+        { id: 'c3', title: 'Si Peneliti', icon: 'fa-magnifying-glass', color: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40', mission: 'Mencari informasi di buku atau materi.' },
+        { id: 'c4', title: 'Si Presenter', icon: 'fa-chalkboard-user', color: 'bg-purple-500/20 text-purple-300 border-purple-500/40', mission: 'Mempresentasikan hasil kelompok.' }
+    ],
+    groups: [
+        { id: 'g1', name: 'Kelompok 1 (Garuda)', stars: 20, students: [{ name: 'Aditya', role: null }, { name: 'Nabila', role: null }, { name: 'Rian', role: null }, { name: 'Siti', role: null }] },
+        { id: 'g2', name: 'Kelompok 2 (Rajawali)', stars: 20, students: [{ name: 'Budi', role: null }, { name: 'Dewi', role: null }, { name: 'Fajar', role: null }, { name: 'Gita', role: null }] },
+        { id: 'g3', name: 'Kelompok 3 (Komodo)', stars: 20, students: [{ name: 'Hasan', role: null }, { name: 'Intan', role: null }, { name: 'Joko', role: null }, { name: 'Lani', role: null }] },
+        { id: 'g4', name: 'Kelompok 4 (Cendrawasih)', stars: 20, students: [{ name: 'Maya', role: null }, { name: 'Niko', role: null }, { name: 'Oky', role: null }, { name: 'Putri', role: null }] }
+    ]
+};
+
+/* ===================================================================
+ * ROOM MANAGEMENT
+ * =================================================================== */
+function generateRoomCode() {
+    return Math.floor(100000 + Math.random() * 900000).toString();
+}
+
+function getRoomFromURL() {
+    const params = new URLSearchParams(window.location.search);
+    return params.get('room');
+}
+
+function createRoomAsHost() {
+    if (!window.FB) { alert("Firebase belum siap. Coba refresh."); return; }
+    roomId = generateRoomCode();
+    isHost = true;
+    localStorage.setItem('kelasaktif_room', roomId);
+
+    const FB = window.FB;
+    FB.set(FB.ref(FB.db, 'rooms/' + roomId), {
+        hostOnline: true,
+        createdAt: Date.now(),
+        mission: appState.mission,
+        timerSeconds: timerSeconds,
+        isTimerRunning: false,
+        groups: appState.groups,
+        roleMode: roleMode,
+        customRoles: appState.customRoles
+    }).then(() => {
+        subscribeToRoom();
+        updateURL('host');
+        showRoomBadge();
+        showClassroomToast("🎯 Room Dibuat!", "Kode Kelas: " + roomId);
+        playSFX('chime');
+        setTimeout(openShareModal, 600);
+    }).catch(err => {
+        console.error(err);
+        alert("Gagal buat room. Periksa Firebase Rules & databaseURL.");
+    });
+}
+
+function joinRoomAsClient(code) {
+    if (!window.FB) { alert("Firebase belum siap."); return; }
+    roomId = code;
+    isHost = false;
+    localStorage.setItem('kelasaktif_room', roomId);
+
+    const FB = window.FB;
+    const roomRef = FB.ref(FB.db, 'rooms/' + roomId);
+
+    // Cek room ada
+    FB.onValue(roomRef, (snap) => {
+        if (!snap.exists()) {
+            showClassroomToast("⚠️ Room Tidak Ditemukan", "Kode salah atau host belum aktif.");
+            localStorage.removeItem('kelasaktif_room');
+        }
+    }, { onlyOnce: true });
+
+    subscribeToRoom();
+    updateURL('client');
+    showRoomBadge();
+    showClassroomToast("✅ Terhubung!", "Terhubung ke kelas " + roomId);
+    playSFX('chime');
+}
+
+function updateURL(mode) {
+    const url = new URL(window.location);
+    url.searchParams.set('room', roomId);
+    url.searchParams.set('mode', mode);
+    window.history.replaceState({}, '', url);
+}
+
+function subscribeToRoom() {
+    if (!roomId || !window.FB) return;
+    const FB = window.FB;
+    const roomRef = FB.ref(FB.db, 'rooms/' + roomId);
+
+    syncUnsubscribe.forEach(fn => fn());
+    syncUnsubscribe = [];
+
+    const unsub = FB.onValue(roomRef, (snap) => {
+        const data = snap.val();
+        if (!data) return;
+
+        if (data.mission && data.mission !== appState.mission) {
+            appState.mission = data.mission;
+            document.getElementById('display-mission-text').textContent = data.mission;
+            const mis = document.getElementById('input-mission');
+            if (mis && document.activeElement !== mis) mis.value = data.mission;
+        }
+
+        if (data.groups) {
+            appState.groups = data.groups;
+            renderTeacherPanel();
+            renderProjectorView();
+        }
+
+        if (data.customRoles) appState.customRoles = data.customRoles;
+        if (data.roleMode) {
+            roleMode = data.roleMode;
+            const label = document.getElementById('label-active-class');
+            if (label) {
+                label.textContent = roleMode === 'low' ? 'Kelas 1-3 SD (Rendah)' :
+                                    roleMode === 'high' ? 'Kelas 4-6 SD (Tinggi)' : 'Peran Kustom Guru';
+            }
+        }
+
+        if (typeof data.timerSeconds === 'number') {
+            // Only sync timer from cloud if we're NOT the host currently running
+            if (!isHost || !isTimerRunning) {
+                timerSeconds = data.timerSeconds;
+                updateTimerDisplay();
+            }
+        }
+        if (typeof data.isTimerRunning === 'boolean' && !isHost) {
+            const shouldRun = data.isTimerRunning;
+            if (shouldRun && !isTimerRunning) startTimerLocal();
+            else if (!shouldRun && isTimerRunning) stopTimerLocal();
+        }
+    });
+
+    syncUnsubscribe.push(() => unsub());
+}
+
+function pushStateToCloud(partial = null) {
+    if (!roomId || !window.FB) return;
+    const FB = window.FB;
+    const roomRef = FB.ref(FB.db, 'rooms/' + roomId);
+    const payload = partial || {
+        mission: appState.mission,
+        groups: appState.groups,
+        timerSeconds: timerSeconds,
+        isTimerRunning: isTimerRunning,
+        roleMode: roleMode,
+        customRoles: appState.customRoles
+    };
+    FB.update(roomRef, payload);
+}
+
+/* ===================================================================
+ * ROOM DIALOG (muncul di awal)
+ * =================================================================== */
+function showRoomJoinDialog() {
+    const div = document.createElement('div');
+    div.id = 'room-join-dialog';
+    div.className = 'fixed inset-0 bg-slate-950/90 backdrop-blur-md z-[100] flex items-center justify-center p-4';
+    div.innerHTML = `
+        <div class="glass-card rounded-2xl max-w-sm w-full p-6 border border-slate-700 shadow-2xl flex flex-col gap-4">
+            <div class="text-center">
+                <div class="w-16 h-16 mx-auto rounded-2xl bg-gradient-to-tr from-brand-600 to-pink-500 flex items-center justify-center text-white text-2xl shadow-lg mb-2">
+                    <i class="fa-solid fa-wifi"></i>
+                </div>
+                <h3 class="heading-font text-lg font-bold text-white">Hubungkan Kelas</h3>
+                <p class="text-xs text-slate-400 mt-1">Pilih mode: Host di laptop, Client di HP</p>
+            </div>
+            <button onclick="startAsHost()" class="w-full py-3 bg-gradient-to-r from-brand-600 to-purple-600 hover:from-brand-500 hover:to-purple-500 text-white font-bold rounded-xl shadow-lg transition">
+                <i class="fa-solid fa-tv mr-2"></i>Jadi Host (Laptop/Proyektor)
+            </button>
+            <div class="flex items-center gap-2 text-xs text-slate-500">
+                <div class="flex-1 h-px bg-slate-700"></div>
+                <span>ATAU</span>
+                <div class="flex-1 h-px bg-slate-700"></div>
+            </div>
+            <input type="text" id="room-input" placeholder="Masukkan Kode Kelas (6 digit)" maxlength="6" inputmode="numeric"
+                class="w-full text-center text-2xl font-black tracking-[0.4em] bg-slate-900 border-2 border-brand-500/40 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-brand-500">
+            <button onclick="submitJoinRoom()" class="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl shadow-lg transition">
+                <i class="fa-solid fa-plug mr-2"></i>Hubungkan ke Host
+            </button>
+        </div>
+    `;
+    document.body.appendChild(div);
+    setTimeout(() => document.getElementById('room-input')?.focus(), 100);
+}
+
+function submitJoinRoom() {
+    const input = document.getElementById('room-input');
+    const code = input.value.trim();
+    if (!/^\d{6}$/.test(code)) {
+        showClassroomToast("⚠️ Kode Tidak Valid", "Kode kelas harus 6 digit angka.");
+        return;
+    }
+    document.getElementById('room-join-dialog')?.remove();
+    joinRoomAsClient(code);
+}
+
+function startAsHost() {
+    document.getElementById('room-join-dialog')?.remove();
+    createRoomAsHost();
+}
+
+/* ===================================================================
+ * SHARE MODAL
+ * =================================================================== */
+function openShareModal() {
+    if (!roomId) { showClassroomToast("⚠️ Belum Ada Room", "Buat room dulu sebagai Host."); return; }
+    document.getElementById('share-room-code').textContent = roomId;
+    const url = new URL(window.location);
+    url.searchParams.set('room', roomId);
+    url.searchParams.set('mode', 'client');
+    document.getElementById('share-room-link').value = url.toString();
+    const modal = document.getElementById('modal-share');
+    modal.classList.remove('hidden'); modal.classList.add('flex');
+}
+function closeShareModal() {
+    const modal = document.getElementById('modal-share');
+    modal.classList.add('hidden'); modal.classList.remove('flex');
+}
+function copyShareCode() {
+    fallbackCopyText(roomId, "📋 Kode Disalin!", "Kode " + roomId + " siap dibagikan.");
+}
+function copyShareLink() {
+    const link = document.getElementById('share-room-link').value;
+    fallbackCopyText(link, "📋 Link Disalin!", "Kirim link ini via WhatsApp ke HP Guru.");
+}
+
+/* ===================================================================
+ * ROOM BADGE
+ * =================================================================== */
+function showRoomBadge() {
+    let badge = document.getElementById('room-badge');
+    if (!badge) {
+        badge = document.createElement('div');
+        badge.id = 'room-badge';
+        badge.className = 'fixed bottom-3 right-3 z-40 flex items-center gap-2 bg-slate-900/95 backdrop-blur border border-brand-500/40 rounded-xl px-3 py-2 shadow-2xl';
+        document.body.appendChild(badge);
+    }
+    badge.innerHTML = `
+        <span class="w-2 h-2 rounded-full ${isHost ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500 animate-pulse'}"></span>
+        <div class="flex flex-col">
+            <span class="text-[9px] uppercase font-bold text-slate-400 tracking-wider">${isHost ? 'HOST' : 'CLIENT'}</span>
+            <span class="font-mono text-sm font-black text-white tracking-widest">${roomId || '------'}</span>
+        </div>
+        <button onclick="openShareModal()" class="ml-1 p-1.5 rounded-lg bg-brand-600 hover:bg-brand-500 text-white transition" title="Bagikan">
+            <i class="fa-solid fa-share-nodes text-xs"></i>
+        </button>
+        <button onclick="leaveRoom()" class="p-1.5 rounded-lg bg-rose-900/60 hover:bg-rose-800/60 text-rose-300 transition" title="Keluar">
+            <i class="fa-solid fa-right-from-bracket text-xs"></i>
+        </button>
+    `;
+}
+
+function leaveRoom() {
+    if (!confirm("Keluar dari room kelas ini?")) return;
+    localStorage.removeItem('kelasaktif_room');
+    const url = new URL(window.location);
+    url.searchParams.delete('room');
+    url.searchParams.delete('mode');
+    window.location.href = url.toString();
+}
+
+/* ===================================================================
+ * AUDIO
+ * =================================================================== */
+let audioCtx = null;
+function getAudioContext() {
+    if (!audioCtx) {
+        try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch(e) { return null; }
+    }
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    return audioCtx;
+}
+function playSFX(type) {
+    if (!audioEnabled) return;
+    try {
+        const ctx = getAudioContext();
+        if (!ctx) return;
+        const now = ctx.currentTime;
+        const playTone = (freq, duration, typeOsc = 'sine', vol = 0.1, delay = 0) => {
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.type = typeOsc;
+            osc.frequency.setValueAtTime(freq, now + delay);
+            gain.gain.setValueAtTime(vol, now + delay);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + delay + duration);
+            osc.connect(gain); gain.connect(ctx.destination);
+            osc.start(now + delay); osc.stop(now + delay + duration);
+        };
+        switch(type) {
+            case 'spin': playTone(400, 0.1, 'sine', 0.1); break;
+            case 'chime': case 'star':
+                [523.25, 659.25, 783.99, 1046.50].forEach((f, i) => playTone(f, 0.3, 'triangle', 0.2, i * 0.08)); break;
+            case 'penalty': case 'buzz':
+                playTone(180, 0.3, 'sawtooth', 0.2);
+                setTimeout(() => playTone(110, 0.3, 'sawtooth', 0.15), 100); break;
+            case 'bell': playTone(880, 1.2, 'sine', 0.3); playTone(1760, 0.8, 'sine', 0.1, 0.05); break;
+            case 'cheer': [440, 554.37, 659.25, 880].forEach(f => playTone(f, 0.6, 'sawtooth', 0.12)); break;
+        }
+    } catch(e) {}
+}
+function toggleAudio() {
+    audioEnabled = !audioEnabled;
+    const icon = document.getElementById('icon-sound');
+    if (audioEnabled) { icon.className = 'fa-solid fa-volume-high'; playSFX('bell'); }
+    else { icon.className = 'fa-solid fa-volume-xmark text-rose-400'; }
+}
+
+/* ===================================================================
+ * ROLES
+ * =================================================================== */
+function getActiveRoles() {
+    if (roleMode === 'custom' && appState.customRoles && appState.customRoles.length > 0) return appState.customRoles;
+    return ROLE_PRESETS[roleMode] || ROLE_PRESETS['high'];
+}
+
+function triggerSpinRoles() {
+    if (isSpinning) return;
+    const availableRoles = getActiveRoles();
+    if (!availableRoles || availableRoles.length === 0) {
+        showClassroomToast("⚠️ Peran Kosong", "Atur peran dulu.");
+        return;
+    }
+    const btnSpin = document.getElementById('btn-spin');
+    isSpinning = true;
+    btnSpin.disabled = true;
+    btnSpin.classList.add('opacity-75', 'cursor-not-allowed');
+    const projectorGrid = document.getElementById('projector-group-grid');
+    projectorGrid.classList.add('shuffling');
+
+    let spins = 0;
+    const maxSpins = 12;
+    const spinInterval = setInterval(() => {
+        spins++;
+        playSFX('spin');
+        appState.groups.forEach(group => {
+            const shuffledRoles = [...availableRoles].sort(() => Math.random() - 0.5);
+            group.students.forEach((student, index) => {
+                student.role = shuffledRoles[index % shuffledRoles.length];
+            });
+        });
+        renderProjectorView();
+        renderTeacherPanel();
+
+        if (spins >= maxSpins) {
+            clearInterval(spinInterval);
+            projectorGrid.classList.remove('shuffling');
+            isSpinning = false;
+            btnSpin.disabled = false;
+            btnSpin.classList.remove('opacity-75', 'cursor-not-allowed');
+            playSFX('cheer');
+            triggerConfetti();
+            showClassroomToast("🎉 Peran Dibagikan!", "Setiap siswa punya peran khusus!");
+            pushStateToCloud({ groups: appState.groups });
+        }
+    }, 120);
+}
+
+function triggerConfetti() {
+    if (typeof confetti === 'function') confetti({ particleCount: 80, spread: 70, origin: { y: 0.6 } });
+}
+
+/* ===================================================================
+ * CONFIG MODAL
+ * =================================================================== */
+function switchConfigTab(tabId) {
+    ['tab-roster', 'tab-roles', 'tab-manual'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.classList.toggle('hidden', id !== tabId);
+    });
+    ['roster', 'roles', 'manual'].forEach(id => {
+        const btn = document.getElementById(`tab-btn-${id}`);
+        if (btn) {
+            btn.className = 'px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition whitespace-nowrap ' +
+                (tabId === `tab-${id}` ? 'bg-brand-600 text-white' : 'text-slate-400 hover:text-white');
+        }
+    });
+}
+
+function openConfigModal() {
+    document.getElementById('input-roster-text').value = appState.allStudentsText || '';
+    document.getElementById('input-num-groups').value = appState.groups.length || 4;
+    selectRoleMode(roleMode);
+    renderConfigEditor();
+    const modal = document.getElementById('modal-config');
+    modal.classList.remove('hidden'); modal.classList.add('flex');
+}
+function closeConfigModal() {
+    const modal = document.getElementById('modal-config');
+    modal.classList.add('hidden'); modal.classList.remove('flex');
+}
+
+function selectRoleMode(mode) {
+    roleMode = mode;
+    const btnLow = document.getElementById('preset-btn-low');
+    const btnHigh = document.getElementById('preset-btn-high');
+    const btnCustom = document.getElementById('preset-btn-custom');
+    const label = document.getElementById('label-active-class');
+    const baseCls = 'p-2.5 rounded-xl border text-left transition flex flex-col gap-1 bg-slate-800/80 border-slate-700 hover:border-brand-500';
+    [btnLow, btnHigh, btnCustom].forEach(b => { if (b) b.className = baseCls; });
+    if (mode === 'low') {
+        if (btnLow) btnLow.className = 'p-2.5 rounded-xl border text-left transition flex flex-col gap-1 bg-brand-600/20 border-brand-500 shadow';
+        if (label) label.textContent = 'Kelas 1-3 SD (Rendah)';
+    } else if (mode === 'high') {
+        if (btnHigh) btnHigh.className = 'p-2.5 rounded-xl border text-left transition flex flex-col gap-1 bg-brand-600/20 border-brand-500 shadow';
+        if (label) label.textContent = 'Kelas 4-6 SD (Tinggi)';
+    } else {
+        if (btnCustom) btnCustom.className = 'p-2.5 rounded-xl border text-left transition flex flex-col gap-1 bg-amber-500/20 border-amber-500 shadow';
+        if (label) label.textContent = 'Peran Kustom Guru';
+    }
+    renderActiveRolesList();
+}
+
+function renderActiveRolesList() {
+    const container = document.getElementById('active-roles-list');
+    if (!container) return;
+    container.innerHTML = '';
+    getActiveRoles().forEach((r, idx) => {
+        const card = document.createElement('div');
+        card.className = 'bg-slate-950 border border-slate-800 rounded-lg p-2 flex items-center justify-between text-xs';
+        card.innerHTML = `
+            <div class="flex items-center gap-2">
+                <span class="w-6 h-6 rounded flex items-center justify-center text-xs ${r.color || 'bg-slate-800 text-slate-200'}">
+                    <i class="fa-solid ${r.icon || 'fa-star'}"></i>
+                </span>
+                <div>
+                    <div class="font-bold text-white">${escapeHtml(r.title)}</div>
+                    <div class="text-[10px] text-slate-400">${escapeHtml(r.mission)}</div>
+                </div>
+            </div>
+            ${roleMode === 'custom' ? `<button onclick="removeCustomRole(${idx})" class="text-rose-400 hover:text-rose-300 p-1 text-xs"><i class="fa-solid fa-trash-can"></i></button>` : ''}
+        `;
+        container.appendChild(card);
+    });
+}
+
+function addCustomRole() {
+    const title = document.getElementById('input-custom-title').value.trim();
+    const icon = document.getElementById('input-custom-icon').value;
+    const mission = document.getElementById('input-custom-mission').value.trim();
+    if (!title || !mission) { showClassroomToast("⚠️ Data Kurang", "Isi nama peran & instruksi."); return; }
+    appState.customRoles.push({ id: 'c' + Date.now(), title, icon, color: 'bg-amber-500/20 text-amber-300 border-amber-500/40', mission });
+    document.getElementById('input-custom-title').value = '';
+    document.getElementById('input-custom-mission').value = '';
+    selectRoleMode('custom');
+    showClassroomToast("✅ Peran Ditambah", `Peran "${title}" disimpan!`);
+}
+function removeCustomRole(index) {
+    appState.customRoles.splice(index, 1);
+    renderActiveRolesList();
+}
+
+function autoGenerateGroups() {
+    const rawText = document.getElementById('input-roster-text').value;
+    const numGroups = Math.max(1, parseInt(document.getElementById('input-num-groups').value) || 4);
+    const maxStudents = Math.max(1, parseInt(document.getElementById('input-students-per-group').value) || 4);
+    appState.allStudentsText = rawText;
+    const names = rawText.split(/[\n,]+/).map(n => n.trim()).filter(n => n.length > 0);
+    if (names.length === 0) { showClassroomToast("⚠️ Data Kosong", "Masukkan daftar nama siswa."); return; }
+    const newGroups = [];
+    for (let i = 0; i < numGroups; i++) newGroups.push({ id: `g_${i + 1}_${Date.now()}`, name: `Kelompok ${i + 1}`, stars: 20, students: [] });
+    names.forEach((studentName, index) => {
+        const gi = index % numGroups;
+        if (newGroups[gi].students.length < maxStudents) newGroups[gi].students.push({ name: studentName, role: null });
+    });
+    appState.groups = newGroups;
+    renderConfigEditor();
+    switchConfigTab('tab-manual');
+    showClassroomToast("✨ Kelompok Dibuat!", `${names.length} siswa → ${numGroups} kelompok.`);
+}
+
+function renderConfigEditor() {
+    const container = document.getElementById('config-group-editor');
+    if (!container) return;
+    container.innerHTML = '';
+    appState.groups.forEach((group, groupIdx) => {
+        const box = document.createElement('div');
+        box.className = 'bg-slate-900 border border-slate-800 rounded-xl p-3 flex flex-col gap-2';
+        const studentNames = group.students.map(s => s.name).join(', ');
+        box.innerHTML = `
+            <div class="flex items-center justify-between gap-2">
+                <input type="text" value="${escapeHtml(group.name)}" data-group-name-idx="${groupIdx}" class="group-name-input bg-slate-950 border border-slate-700 rounded px-2.5 py-1 text-xs text-white font-bold w-1/2">
+                <button onclick="removeGroup(${groupIdx})" class="text-rose-400 hover:text-rose-300 text-xs px-2 py-1"><i class="fa-solid fa-trash-can"></i></button>
+            </div>
+            <div>
+                <label class="text-[10px] text-slate-400 block mb-1">Nama Siswa (pisah koma):</label>
+                <input type="text" value="${escapeHtml(studentNames)}" data-group-names-idx="${groupIdx}" class="group-names-input w-full bg-slate-950 border border-slate-700 rounded px-2.5 py-1 text-xs text-slate-200">
+            </div>
+        `;
+        container.appendChild(box);
+    });
+}
+
+function addNewGroup() {
+    const newIndex = appState.groups.length + 1;
+    appState.groups.push({
+        id: 'g' + Date.now(), name: `Kelompok ${newIndex}`, stars: 20,
+        students: [{ name: 'Siswa A', role: null }, { name: 'Siswa B', role: null }, { name: 'Siswa C', role: null }, { name: 'Siswa D', role: null }]
+    });
+    renderConfigEditor();
+}
+function removeGroup(idx) {
+    if (appState.groups.length > 1) { appState.groups.splice(idx, 1); renderConfigEditor(); }
+    else showClassroomToast("⚠️ Minimal 1 Kelompok", "Tidak bisa hapus semua.");
+}
+
+function saveConfiguration() {
+    const rosterText = document.getElementById('input-roster-text');
+    if (rosterText) appState.allStudentsText = rosterText.value;
+    const existingRoleMap = {};
+    appState.groups.forEach(g => g.students.forEach(s => { if (s.role) existingRoleMap[s.name] = s.role; }));
+    appState.groups.forEach((group, idx) => {
+        const nameInput = document.querySelector(`.group-name-input[data-group-name-idx="${idx}"]`);
+        const namesInput = document.querySelector(`.group-names-input[data-group-names-idx="${idx}"]`);
+        if (nameInput && namesInput) {
+            group.name = nameInput.value.trim() || `Kelompok ${idx + 1}`;
+            const nameArray = namesInput.value.split(',').map(n => n.trim()).filter(n => n !== '');
+            group.students = nameArray.map(name => ({ name, role: existingRoleMap[name] || null }));
+        }
+    });
+    closeConfigModal();
+    renderTeacherPanel();
+    renderProjectorView();
+    pushStateToCloud();
+    showClassroomToast("✅ Tersimpan!", "Pengaturan diperbarui & disinkronkan.");
+}
+
+/* ===================================================================
+ * TIMER & MISSION
+ * =================================================================== */
+function applyCustomTimer() {
+    const inputMins = document.getElementById('input-timer-mins');
+    const mins = Math.max(1, Math.min(120, parseInt(inputMins.value) || 15));
+    inputMins.value = mins;
+    timerSeconds = mins * 60;
+    updateTimerDisplay();
+    playSFX('bell');
+    pushStateToCloud({ timerSeconds: timerSeconds, isTimerRunning: false });
+    showClassroomToast("⏱️ Timer Diperbarui", `Durasi: ${mins} menit.`);
+}
+
+function updateMission() {
+    const input = document.getElementById('input-mission');
+    if (input.value.trim() !== '') {
+        appState.mission = input.value.trim();
+        document.getElementById('display-mission-text').textContent = appState.mission;
+        pushStateToCloud({ mission: appState.mission });
+        playSFX('bell');
+    }
+}
+
+function toggleTimer() {
+    if (isTimerRunning) {
+        stopTimerLocal();
+        pushStateToCloud({ isTimerRunning: false, timerSeconds: timerSeconds });
+    } else {
+        startTimerLocal();
+        pushStateToCloud({ isTimerRunning: true, timerSeconds: timerSeconds });
+    }
+}
+
+function startTimerLocal() {
+    if (isTimerRunning) return;
+    const btnToggle = document.getElementById('btn-timer-toggle');
+    const badge = document.getElementById('timer-status-badge');
+    getAudioContext();
+    isTimerRunning = true;
+    if (btnToggle) { btnToggle.innerHTML = '<i class="fa-solid fa-pause mr-1"></i> Pause'; btnToggle.className = 'flex-1 py-1.5 bg-amber-600 hover:bg-amber-500 text-white rounded-lg text-xs font-bold transition'; }
+    if (badge) { badge.textContent = 'Running'; badge.className = 'text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300'; }
+
+    timerInterval = setInterval(() => {
+        if (timerSeconds > 0) {
+            timerSeconds--;
+            updateTimerDisplay();
+            if (isHost && timerSeconds % 5 === 0) pushStateToCloud({ timerSeconds: timerSeconds });
+        } else {
+            clearInterval(timerInterval);
+            isTimerRunning = false;
+            playSFX('bell');
+            showClassroomToast("⏱️ Waktu Habis!", "Siap presentasi!");
+            if (btnToggle) { btnToggle.innerHTML = '<i class="fa-solid fa-play mr-1"></i> Start'; btnToggle.className = 'flex-1 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-bold transition'; }
+            if (badge) { badge.textContent = 'Done'; badge.className = 'text-[10px] px-1.5 py-0.5 rounded bg-rose-500/20 text-rose-300'; }
+            if (isHost) pushStateToCloud({ isTimerRunning: false, timerSeconds: 0 });
+        }
+    }, 1000);
+}
+
+function stopTimerLocal() {
+    clearInterval(timerInterval);
+    isTimerRunning = false;
+    const btnToggle = document.getElementById('btn-timer-toggle');
+    const badge = document.getElementById('timer-status-badge');
+    if (btnToggle) { btnToggle.innerHTML = '<i class="fa-solid fa-play mr-1"></i> Start'; btnToggle.className = 'flex-1 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-bold transition'; }
+    if (badge) { badge.textContent = 'Paused'; badge.className = 'text-[10px] px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300'; }
+}
+
+function resetTimer() {
+    clearInterval(timerInterval);
+    isTimerRunning = false;
+    const mins = Math.max(1, Math.min(120, parseInt(document.getElementById('input-timer-mins').value) || 15));
+    timerSeconds = mins * 60;
+    updateTimerDisplay();
+    const btn = document.getElementById('btn-timer-toggle');
+    if (btn) { btn.innerHTML = '<i class="fa-solid fa-play mr-1"></i> Start'; btn.className = 'flex-1 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-bold transition'; }
+    const badge = document.getElementById('timer-status-badge');
+    if (badge) { badge.textContent = 'Ready'; badge.className = 'text-[10px] px-1.5 py-0.5 rounded bg-slate-800 text-slate-400'; }
+    pushStateToCloud({ isTimerRunning: false, timerSeconds: timerSeconds });
+}
+
+function updateTimerDisplay() {
+    const mins = Math.floor(timerSeconds / 60);
+    const secs = timerSeconds % 60;
+    const el = document.getElementById('display-timer');
+    if (el) el.textContent = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+}
+
+/* ===================================================================
+ * RENDERERS
+ * =================================================================== */
+function renderTeacherPanel() {
+    const container = document.getElementById('teacher-group-list');
+    if (!container) return;
+    container.innerHTML = '';
+    appState.groups.forEach((group) => {
+        const card = document.createElement('div');
+        card.className = 'glass-card-light rounded-xl p-3 flex items-center justify-between border border-slate-700/60 hover:border-slate-600 transition';
+        card.innerHTML = `
+            <div>
+                <h4 class="font-bold text-xs text-white flex items-center gap-1.5">${escapeHtml(group.name)}</h4>
+                <div class="text-[11px] text-amber-400 font-semibold mt-0.5 flex items-center gap-1">
+                    <i class="fa-solid fa-star text-xs"></i> ${group.stars} Bintang
+                </div>
+            </div>
+            <div class="flex items-center gap-1">
+                <button onclick="modifyStars('${group.id}', 10)" class="px-2 py-1 bg-amber-500 hover:bg-amber-400 active:scale-95 text-slate-950 font-black rounded-lg text-xs shadow-md shadow-amber-500/20 transition">+10 ⭐</button>
+                <button onclick="modifyStars('${group.id}', 5)" class="px-2 py-1 bg-amber-600/80 hover:bg-amber-500 active:scale-95 text-white font-bold rounded-lg text-xs transition">+5 ⭐</button>
+                <button onclick="modifyStars('${group.id}', -5)" class="px-2 py-1 bg-rose-600/80 hover:bg-rose-500 active:scale-95 text-white font-bold rounded-lg text-xs transition">-5 ⚠️</button>
+            </div>
+        `;
+        container.appendChild(card);
+    });
+}
+
+function modifyStars(groupId, count) {
+    const group = appState.groups.find(g => g.id === groupId);
+    if (!group) return;
+    group.stars = Math.max(0, group.stars + count);
+    if (count > 0) {
+        playSFX('star');
+        if (count >= 10) triggerConfetti();
+        showClassroomToast(`⭐ ${group.name} +${count} Bintang!`, `Apresiasi kerjasama hebat!`);
+    } else if (count < 0) {
+        playSFX('penalty');
+        showClassroomToast(`⚠️ ${group.name} ${count} Bintang`, `Pengurangan poin. Ayo tingkatkan!`);
+    }
+    renderTeacherPanel();
+    renderProjectorView();
+    pushStateToCloud({ groups: appState.groups });
+}
+
+function renderProjectorView() {
+    const grid = document.getElementById('projector-group-grid');
+    if (!grid) return;
+    grid.innerHTML = '';
+    appState.groups.forEach((group) => {
+        const groupCard = document.createElement('div');
+        groupCard.className = 'glass-card-light rounded-xl p-4 flex flex-col gap-3 border border-slate-700/60 shadow-lg bg-slate-900/60';
+        let studentsHTML = '';
+        group.students.forEach((student) => {
+            if (student.role) {
+                studentsHTML += `
+                    <div class="bg-slate-950/80 border border-slate-800 rounded-lg p-2.5 flex items-center justify-between gap-2">
+                        <div class="flex items-center gap-2 overflow-hidden">
+                            <span class="w-7 h-7 rounded-lg flex items-center justify-center text-xs shrink-0 ${student.role.color || 'bg-brand-500/20 text-brand-300'}">
+                                <i class="fa-solid ${student.role.icon || 'fa-user'}"></i>
+                            </span>
+                            <div class="truncate">
+                                <div class="font-bold text-xs text-white truncate">${escapeHtml(student.name)}</div>
+                                <div class="text-[10px] text-indigo-300 font-semibold truncate">${escapeHtml(student.role.title)}</div>
+                            </div>
+                        </div>
+                        <span class="text-[10px] px-2 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700 shrink-0 hidden sm:inline" title="${escapeHtml(student.role.mission)}">Tugas</span>
+                    </div>
+                `;
+            } else {
+                studentsHTML += `
+                    <div class="bg-slate-950/40 border border-slate-800/80 rounded-lg p-2.5 flex items-center justify-between">
+                        <span class="font-semibold text-xs text-slate-300">${escapeHtml(student.name)}</span>
+                        <span class="text-[10px] px-2 py-0.5 rounded bg-slate-800/60 text-slate-500 italic">Belum Diacak</span>
+                    </div>
+                `;
+            }
+        });
+        groupCard.innerHTML = `
+            <div class="flex items-center justify-between pb-2 border-b border-slate-800">
+                <h3 class="font-bold text-sm text-white flex items-center gap-2">
+                    <i class="fa-solid fa-users text-indigo-400"></i> ${escapeHtml(group.name)}
+                </h3>
+                <span class="font-extrabold text-xs text-amber-400 bg-amber-500/10 border border-amber-500/30 px-2.5 py-1 rounded-full flex items-center gap-1">
+                    <i class="fa-solid fa-star"></i> ${group.stars}
+                </span>
+            </div>
+            <div class="space-y-2 flex-1">${studentsHTML}</div>
+        `;
+        grid.appendChild(groupCard);
+    });
+}
+
+function showClassroomToast(title, desc) {
+    const toast = document.getElementById('classroom-toast');
+    document.getElementById('toast-title').textContent = title;
+    document.getElementById('toast-desc').textContent = desc;
+    toast.classList.remove('hidden');
+    clearTimeout(toast._timer);
+    toast._timer = setTimeout(() => toast.classList.add('hidden'), 3500);
+}
+
+/* ===================================================================
+ * VIEW SWITCHING
+ * =================================================================== */
+function switchView(mode) {
+    const viewport = document.getElementById('app-viewport');
+    const panelHP = document.getElementById('panel-hp');
+    const panelProj = document.getElementById('panel-projector');
+    const btnSplit = document.getElementById('btn-view-split');
+    const btnHP = document.getElementById('btn-view-hp');
+    const btnProj = document.getElementById('btn-view-projector');
+    const inactiveCls = 'px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-all text-slate-400 hover:text-white';
+    const activeCls = 'px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-all bg-brand-600 text-white shadow';
+    [btnSplit, btnHP, btnProj].forEach(btn => { if (btn) btn.className = inactiveCls; });
+
+    if (mode === 'split') {
+        viewport.className = 'flex-1 p-3 md:p-6 max-w-7xl w-full mx-auto grid grid-cols-1 md:grid-cols-12 gap-6';
+        panelHP.className = 'md:col-span-5 glass-card rounded-2xl p-4 md:p-5 flex flex-col gap-5 border border-slate-700/60 shadow-2xl';
+        panelProj.className = 'md:col-span-7 glass-card rounded-2xl p-4 md:p-6 flex flex-col gap-6 border border-slate-700/60 shadow-2xl relative overflow-hidden bg-slate-950/80';
+        panelHP.classList.remove('hidden'); panelProj.classList.remove('hidden');
+        btnSplit.className = activeCls;
+    } else if (mode === 'hp') {
+        viewport.className = 'flex-1 p-3 md:p-6 max-w-xl w-full mx-auto grid grid-cols-1 gap-6';
+        panelHP.className = 'glass-card rounded-2xl p-4 md:p-5 flex flex-col gap-5 border border-slate-700/60 shadow-2xl';
+        panelHP.classList.remove('hidden'); panelProj.classList.add('hidden');
+        btnHP.className = activeCls;
+    } else if (mode === 'projector') {
+        viewport.className = 'flex-1 p-3 md:p-6 max-w-6xl w-full mx-auto grid grid-cols-1 gap-6';
+        panelProj.className = 'glass-card rounded-2xl p-4 md:p-6 flex flex-col gap-6 border border-slate-700/60 shadow-2xl relative overflow-hidden bg-slate-950/80';
+        panelHP.classList.add('hidden'); panelProj.classList.remove('hidden');
+        btnProj.className = activeCls;
+    }
+}
+
+/* ===================================================================
+ * SUMMARY
+ * =================================================================== */
+function openSummaryModal() {
+    const leaderboard = document.getElementById('summary-leaderboard');
+    leaderboard.innerHTML = '';
+    [...appState.groups].sort((a, b) => b.stars - a.stars).forEach((group, idx) => {
+        const item = document.createElement('div');
+        item.className = 'glass-card-light rounded-xl p-3 flex items-center justify-between border border-slate-700/60';
+        let badgeColor = 'bg-slate-800 text-slate-300';
+        if (idx === 0) badgeColor = 'bg-amber-500/20 text-amber-300 border border-amber-500/40';
+        if (idx === 1) badgeColor = 'bg-slate-300/20 text-slate-200 border border-slate-400/40';
+        if (idx === 2) badgeColor = 'bg-orange-500/20 text-orange-300 border border-orange-500/40';
+        item.innerHTML = `
+            <div class="flex items-center gap-2.5">
+                <span class="w-6 h-6 rounded-full flex items-center justify-center font-bold text-xs ${badgeColor}">#${idx + 1}</span>
+                <span class="font-bold text-xs text-white">${escapeHtml(group.name)}</span>
+            </div>
+            <span class="font-extrabold text-amber-400 text-xs flex items-center gap-1"><i class="fa-solid fa-star"></i> ${group.stars} Poin</span>
+        `;
+        leaderboard.appendChild(item);
+    });
+    const modal = document.getElementById('modal-summary');
+    modal.classList.remove('hidden'); modal.classList.add('flex');
+}
+function closeSummaryModal() {
+    const modal = document.getElementById('modal-summary');
+    modal.classList.add('hidden'); modal.classList.remove('flex');
+}
+function copySummaryText() {
+    let summaryText = `🏆 REKAP BINTANG PERAN KELAS\nMisi: ${appState.mission}\n\n`;
+    [...appState.groups].sort((a, b) => b.stars - a.stars).forEach(g => {
+        summaryText += `• ${g.name}: ${g.stars} Bintang\n`;
+    });
+    fallbackCopyText(summaryText, "📋 Ringkasan Disalin!", "Teks rekapitulasi berhasil disalin.");
+}
+function fallbackCopyText(text, title, desc) {
+    if (navigator.clipboard?.writeText) {
+        navigator.clipboard.writeText(text).then(() => showClassroomToast(title, desc)).catch(() => doFallbackCopy(text, title, desc));
+    } else doFallbackCopy(text, title, desc);
+}
+function doFallbackCopy(text, title, desc) {
+    const ta = document.createElement('textarea');
+    ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    try { document.execCommand('copy'); showClassroomToast(title, desc); }
+    catch(e) { showClassroomToast("⚠️ Gagal Menyalin", "Salin manual."); }
+    document.body.removeChild(ta);
+}
+
+/* ===================================================================
+ * PROFILE
+ * =================================================================== */
+const DEFAULT_PROFILE = {
+    name: "Mahasiswa PPG", photoUrl: "", nim: "202610998877",
+    lptk: "LPTK Perguruan Tinggi Penyelenggara",
+    program: "Pendidikan Guru Sekolah Dasar (PGSD)",
+    school: "SD Negeri Latihan / PPL",
+    motto: "Mewujudkan Inovasi Pembelajaran Berkelanjutan & Adaptif Gen Alpha."
+};
+let creatorProfile = (() => {
+    try { const s = localStorage.getItem('kelasaktif_creator'); if (s) return { ...DEFAULT_PROFILE, ...JSON.parse(s) }; } catch(e) {}
+    return { ...DEFAULT_PROFILE };
+})();
+let tempPhotoUrl = "";
+
+function openProfileModal() {
+    renderProfile();
+    document.getElementById('profile-view-mode').classList.remove('hidden');
+    document.getElementById('profile-edit-mode').classList.add('hidden');
+    const modal = document.getElementById('modal-profile');
+    modal.classList.remove('hidden'); modal.classList.add('flex');
+}
+function closeProfileModal() {
+    const modal = document.getElementById('modal-profile');
+    modal.classList.add('hidden'); modal.classList.remove('flex');
+}
+function enableProfileEdit() {
+    document.getElementById('edit-prof-name').value = creatorProfile.name;
+    document.getElementById('edit-prof-nim').value = creatorProfile.nim;
+    document.getElementById('edit-prof-lptk').value = creatorProfile.lptk;
+    document.getElementById('edit-prof-program').value = creatorProfile.program;
+    document.getElementById('edit-prof-school').value = creatorProfile.school;
+    document.getElementById('edit-prof-motto').value = creatorProfile.motto;
+    tempPhotoUrl = creatorProfile.photoUrl || '';
+    updateEditPhotoPreview();
+    document.getElementById('profile-view-mode').classList.add('hidden');
+    document.getElementById('profile-edit-mode').classList.remove('hidden');
+}
+function cancelProfileEdit() {
+    tempPhotoUrl = "";
+    document.getElementById('profile-view-mode').classList.remove('hidden');
+    document.getElementById('profile-edit-mode').classList.add('hidden');
+}
+function handlePhotoUpload(event) {
+    const file = event.target.files && event.target.files[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) { showClassroomToast("⚠️ File Tidak Valid", "Pilih gambar JPG/PNG."); return; }
+    if (file.size > 2 * 1024 * 1024) { showClassroomToast("⚠️ File Terlalu Besar", "Maks 2MB."); return; }
+    const reader = new FileReader();
+    reader.onload = (e) => { tempPhotoUrl = e.target.result; updateEditPhotoPreview(); showClassroomToast("📸 Foto Dipilih", "Klik Simpan."); };
+    reader.readAsDataURL(file);
+}
+function clearPhoto() {
+    tempPhotoUrl = "";
+    document.getElementById('edit-prof-photo-file').value = '';
+    updateEditPhotoPreview();
+}
+function updateEditPhotoPreview() {
+    const preview = document.getElementById('edit-photo-preview');
+    if (!preview) return;
+    if (tempPhotoUrl) preview.innerHTML = `<img src="${tempPhotoUrl}" alt="Preview" class="w-full h-full object-cover rounded-xl">`;
+    else preview.innerHTML = `<i class="fa-solid fa-user-graduate"></i>`;
+}
+function saveProfile() {
+    const nameVal = document.getElementById('edit-prof-name').value.trim();
+    const nimVal = document.getElementById('edit-prof-nim').value.trim();
+    if (!nameVal) { showClassroomToast("⚠️ Nama Kosong", "Isi nama lengkap."); return; }
+    if (!nimVal) { showClassroomToast("⚠️ NIM Kosong", "Isi NIM/UKG."); return; }
+    creatorProfile = {
+        name: nameVal, photoUrl: tempPhotoUrl, nim: nimVal,
+        lptk: document.getElementById('edit-prof-lptk').value.trim() || DEFAULT_PROFILE.lptk,
+        program: document.getElementById('edit-prof-program').value.trim() || DEFAULT_PROFILE.program,
+        school: document.getElementById('edit-prof-school').value.trim() || DEFAULT_PROFILE.school,
+        motto: document.getElementById('edit-prof-motto').value.trim() || DEFAULT_PROFILE.motto
+    };
+    try { localStorage.setItem('kelasaktif_creator', JSON.stringify(creatorProfile)); }
+    catch(e) { showClassroomToast("⚠️ Storage Penuh", "Foto terlalu besar."); return; }
+    renderProfile(); cancelProfileEdit();
+    playSFX('star');
+    showClassroomToast("✅ Profil Disimpan!", "Data diperbarui.");
+}
+function resetProfile() {
+    if (!confirm("Reset profil ke awal?")) return;
+    creatorProfile = { ...DEFAULT_PROFILE };
+    try { localStorage.removeItem('kelasaktif_creator'); } catch(e) {}
+    renderProfile(); playSFX('bell');
+    showClassroomToast("🔄 Profil Direset", "Dikembalikan ke awal.");
+}
+function renderProfile() {
+    document.getElementById('disp-prof-name').textContent = creatorProfile.name || '-';
+    document.getElementById('disp-prof-nim').textContent = creatorProfile.nim || '-';
+    document.getElementById('disp-prof-lptk').textContent = creatorProfile.lptk || '-';
+    document.getElementById('disp-prof-program').textContent = creatorProfile.program || '-';
+    document.getElementById('disp-prof-school').textContent = creatorProfile.school || '-';
+    document.getElementById('disp-prof-motto').textContent = creatorProfile.motto ? `"${creatorProfile.motto}"` : '-';
+    const pc = document.getElementById('container-prof-photo');
+    if (!pc) return;
+    if (creatorProfile.photoUrl) {
+        const img = document.createElement('img');
+        img.src = creatorProfile.photoUrl; img.alt = creatorProfile.name;
+        img.className = 'w-full h-full object-cover rounded-xl';
+        img.onerror = () => { pc.innerHTML = '<i class="fa-solid fa-user-graduate"></i>'; };
+        pc.innerHTML = ''; pc.appendChild(img);
+    } else pc.innerHTML = '<i class="fa-solid fa-user-graduate"></i>';
+}
+
+/* ===================================================================
+ * UTILITIES
+ * =================================================================== */
+function escapeHtml(str) {
+    if (typeof str !== 'string') return '';
+    return str.replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
+}
+
+/* ===================================================================
+ * INIT
+ * =================================================================== */
+window.addEventListener('firebase-ready', () => {
+    firebaseReady = true;
+    const urlRoom = getRoomFromURL();
+    const urlMode = new URLSearchParams(window.location.search).get('mode');
+    const savedRoom = localStorage.getItem('kelasaktif_room');
+
+    // Sisipkan tombol share ke header
+    const headerRight = document.querySelector('header .flex.items-center.gap-2');
+    if (headerRight && !document.getElementById('btn-share-room')) {
+        const shareBtn = document.createElement('button');
+        shareBtn.id = 'btn-share-room';
+        shareBtn.className = 'px-3 py-1.5 rounded-lg bg-emerald-950/80 hover:bg-emerald-900 border border-emerald-700/60 text-xs font-semibold text-emerald-200 flex items-center gap-1.5 transition shadow-sm';
+        shareBtn.innerHTML = '<i class="fa-solid fa-share-nodes"></i><span>Bagikan Kelas</span>';
+        shareBtn.onclick = () => { if (!roomId) createRoomAsHost(); else openShareModal(); };
+        headerRight.insertBefore(shareBtn, headerRight.firstChild);
+    }
+
+    if (urlMode === 'host' && savedRoom) {
+        roomId = savedRoom;
+        isHost = true;
+        pushStateToCloud();
+        subscribeToRoom();
+        showRoomBadge();
+        updateURL('host');
+    } else if (urlRoom && urlMode === 'client') {
+        joinRoomAsClient(urlRoom);
+    } else if (savedRoom) {
+        joinRoomAsClient(savedRoom);
+    } else {
+        showRoomJoinDialog();
+    }
+});
+
+window.addEventListener('DOMContentLoaded', function() {
+    renderTeacherPanel();
+    renderProjectorView();
+    updateTimerDisplay();
+    renderProfile();
+
+    document.body.addEventListener('click', function initAudio() {
+        getAudioContext();
+        document.body.removeEventListener('click', initAudio);
+    }, { once: true });
+
+    // Jika Firebase gagal load dalam 3 detik, tampilkan pesan
+    setTimeout(() => {
+        if (!firebaseReady) {
+            showClassroomToast("⚠️ Firebase Belum Siap", "Periksa konfigurasi & koneksi internet.");
+        }
+    }, 3000);
+});
+</script>
+</body>
+</html>
