@@ -1,0 +1,3135 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KelasAktif - Role Assigner, Roda Presentasi & Ular Tangga Gen Alpha</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Outfit:wght@500;600;700;800;900&family=Playfair+Display:wght@700;900&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: { 50: '#eef2ff', 100: '#e0e7ff', 500: '#6366f1', 600: '#4f46e5', 700: '#4338ca' },
+                    },
+                    fontFamily: { sans: ['Inter', 'sans-serif'], outfit: ['Outfit', 'sans-serif'], playfair: ['Playfair Display', 'serif'] }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #0f172a; color: #f8fafc; }
+        .heading-font { font-family: 'Outfit', sans-serif; }
+        .glass-card { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); }
+        .glass-card-light { background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.08); }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: rgba(15, 23, 42, 0.6); }
+        ::-webkit-scrollbar-thumb { background: rgba(99, 102, 241, 0.4); border-radius: 9999px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(99, 102, 241, 0.8); }
+        @keyframes shufflePulse {
+            0% { transform: scale(1) rotate(0deg); }
+            25% { transform: scale(1.03) rotate(-1deg); }
+            50% { transform: scale(0.97) rotate(1deg); }
+            75% { transform: scale(1.02) rotate(-0.5deg); }
+            100% { transform: scale(1) rotate(0deg); }
+        }
+        .shuffling { animation: shufflePulse 0.3s ease-in-out infinite; }
+        @keyframes toastSlide {
+            from { transform: translate(-50%, 20px); opacity: 0; }
+            to { transform: translate(-50%, 0); opacity: 1; }
+        }
+        #classroom-toast:not(.hidden) { animation: toastSlide 0.3s ease-out; }
+
+        /* ==================== PAPAN ULAR TANGGA ==================== */
+        .board-wrapper {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 1 / 1;
+            background: linear-gradient(135deg, #fef3c7, #fde68a);
+            border-radius: 16px;
+            padding: 8px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5), inset 0 0 0 3px rgba(255,255,255,0.4);
+            overflow: hidden;
+        }
+        .board-grid {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            display: grid;
+            grid-template-columns: repeat(10, 1fr);
+            grid-template-rows: repeat(10, 1fr);
+            gap: 2px;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        .board-cell {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            justify-content: flex-start;
+            font-weight: 700;
+            font-size: clamp(6px, 0.75vw, 10px);
+            color: #1e293b;
+            border: 1px solid rgba(0,0,0,0.2);
+            border-radius: 4px;
+            text-shadow: 0 1px 0 rgba(255,255,255,0.7);
+            padding: 2px;
+            transition: all 0.3s;
+            overflow: hidden;
+            line-height: 1.1;
+        }
+        .board-cell.c0 { background: #fbbf24; }
+        .board-cell.c1 { background: #86efac; }
+        .board-cell.c2 { background: #f9a8d4; }
+        .board-cell.c3 { background: #fdba74; }
+        .board-cell.c4 { background: #93c5fd; }
+        .board-cell.c5 { background: #d8b4fe; }
+        .board-cell.c6 { background: #fca5a5; }
+        .board-cell.c7 { background: #fde68a; }
+        .board-cell .cell-num {
+            font-weight: 900;
+            color: #1e293b;
+            font-size: clamp(7px, 0.95vw, 11px);
+            line-height: 1;
+            background: rgba(255,255,255,0.85);
+            border-radius: 3px;
+            padding: 1px 3px;
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            z-index: 3;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+        }
+        .board-cell .cell-text {
+            position: absolute;
+            top: 40%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 92%;
+            text-align: center;
+            font-weight: 700;
+            color: #1e293b;
+            font-size: clamp(6px, 0.72vw, 9px);
+            line-height: 1.15;
+            z-index: 2;
+            pointer-events: none;
+            padding: 0 2px;
+            word-wrap: break-word;
+            hyphens: auto;
+        }
+        .board-cell .cell-text.optional {
+            font-style: italic;
+            color: #64748b;
+            font-weight: 600;
+            font-size: clamp(5px, 0.65vw, 8px);
+            opacity: 0.85;
+        }
+        .board-cell.finish {
+            background: linear-gradient(135deg, #fbbf24, #f472b6) !important;
+            box-shadow: inset 0 0 20px rgba(255,255,255,0.7);
+            animation: finishGlow 2s ease-in-out infinite;
+        }
+        @keyframes finishGlow {
+            0%, 100% { box-shadow: inset 0 0 20px rgba(255,255,255,0.7); }
+            50% { box-shadow: inset 0 0 35px rgba(255,255,255,1), 0 0 15px rgba(251, 191, 36, 0.8); }
+        }
+        .board-cell .event-emoji {
+            position: absolute;
+            bottom: 1px;
+            right: 1px;
+            width: 45%;
+            height: 45%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: clamp(12px, 1.6vw, 20px);
+            line-height: 1;
+            z-index: 2;
+            pointer-events: none;
+            filter: drop-shadow(0 2px 3px rgba(0,0,0,0.45));
+            animation: eventFloat 2s ease-in-out infinite;
+        }
+        @keyframes eventFloat {
+            0%, 100% { transform: translateY(0) rotate(0deg); }
+            50% { transform: translateY(-2px) rotate(-3deg); }
+        }
+        .board-cell.finish::after {
+            content: '🏆';
+            position: absolute;
+            bottom: 2px;
+            right: 2px;
+            width: 60%;
+            height: 60%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: clamp(16px, 2.2vw, 28px);
+            z-index: 2;
+            filter: drop-shadow(0 0 5px rgba(255,215,0,0.95));
+            animation: trophyBounce 1.2s ease-in-out infinite;
+        }
+        @keyframes trophyBounce {
+            0%, 100% { transform: translateY(0) scale(1); }
+            50% { transform: translateY(-3px) scale(1.08); }
+        }
+        .pion-container {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: flex-end;
+            justify-content: center;
+            padding: 1px 1px 2px 1px;
+            gap: 1px;
+            z-index: 4;
+        }
+        .pion {
+            width: clamp(10px, 1.6vw, 20px);
+            height: clamp(12px, 1.9vw, 24px);
+            position: relative;
+            border-radius: 50% 50% 45% 45% / 45% 45% 55% 55%;
+            clip-path: polygon(50% 0%, 78% 25%, 92% 75%, 100% 100%, 0% 100%, 8% 75%, 22% 25%);
+            box-shadow: 
+                inset -3px -4px 6px rgba(0,0,0,0.35),
+                inset 3px 3px 5px rgba(255,255,255,0.45),
+                0 2px 4px rgba(0,0,0,0.5);
+            filter: drop-shadow(0 2px 3px rgba(0,0,0,0.4));
+            transition: transform 0.3s;
+            background: #3b82f6;
+            background-image: 
+                radial-gradient(ellipse at 35% 20%, rgba(255,255,255,0.6), transparent 45%),
+                linear-gradient(180deg, rgba(255,255,255,0.15) 0%, transparent 40%, rgba(0,0,0,0.25) 100%);
+        }
+        .pion::after {
+            content: '';
+            position: absolute;
+            bottom: -1px;
+            left: -8%;
+            width: 116%;
+            height: 5px;
+            border-radius: 50%;
+            background: inherit;
+            filter: brightness(0.7);
+            box-shadow: 0 1px 2px rgba(0,0,0,0.6), inset 0 -1px 1px rgba(255,255,255,0.3);
+            z-index: -1;
+        }
+        .pion::before {
+            content: '';
+            position: absolute;
+            top: 15%;
+            left: 15%;
+            width: 30%;
+            height: 55%;
+            border-radius: 50% 50% 40% 40%;
+            background: linear-gradient(180deg, rgba(255,255,255,0.85), rgba(255,255,255,0));
+            filter: blur(0.5px);
+            pointer-events: none;
+        }
+        .pion.hop { animation: pionHop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1); }
+        @keyframes pionHop {
+            0%, 100% { transform: translateY(0) scale(1); }
+            40% { transform: translateY(-14px) scale(1.25); }
+            70% { transform: translateY(-7px) scale(1.1); }
+        }
+
+        .board-svg-overlay {
+            position: absolute;
+            inset: 8px;
+            width: calc(100% - 16px);
+            height: calc(100% - 16px);
+            pointer-events: none;
+            z-index: 2;
+            overflow: visible;
+        }
+        .ladder-svg { filter: drop-shadow(2px 3px 3px rgba(0,0,0,0.35)); }
+        .ladder-rail { stroke: #8b4513; stroke-width: 2.4; stroke-linecap: round; }
+        .ladder-rail-inner { stroke: #a0522d; stroke-width: 1; stroke-linecap: round; }
+        .ladder-rung { stroke: #654321; stroke-width: 1.6; stroke-linecap: round; }
+        .snake-svg { filter: drop-shadow(2px 3px 4px rgba(0,0,0,0.4)); }
+        .snake-body { fill: none; stroke-width: 6; stroke-linecap: round; stroke-linejoin: round; }
+        .snake-body-inner { fill: none; stroke-width: 3; stroke-linecap: round; opacity: 0.6; stroke-dasharray: 2 3; }
+        .snake-head { filter: drop-shadow(0 2px 3px rgba(0,0,0,0.45)); }
+        .snake-eye { fill: white; stroke: #1e293b; stroke-width: 0.5; }
+        .snake-pupil { fill: #1e293b; }
+        .snake-tongue { stroke: #dc2626; stroke-width: 0.9; stroke-linecap: round; fill: none; }
+        @keyframes snakeWiggle {
+            0%, 100% { transform: rotate(0deg) scale(1); }
+            25% { transform: rotate(0.6deg) scale(1.01); }
+            75% { transform: rotate(-0.6deg) scale(1.01); }
+        }
+        .snake-group {
+            animation: snakeWiggle 3s ease-in-out infinite;
+            transform-origin: center;
+            transform-box: fill-box;
+        }
+        .snake-group:nth-child(2n) { animation-delay: 0.5s; }
+        .snake-group:nth-child(3n) { animation-delay: 1s; }
+        .board-cell.marker-ladder::before {
+            content: '🪜';
+            position: absolute;
+            top: 1px; right: 1px;
+            font-size: clamp(7px, 0.9vw, 11px);
+            z-index: 3;
+            opacity: 0.85;
+        }
+        .board-cell.marker-snake::before {
+            content: '🐍';
+            position: absolute;
+            top: 1px; right: 1px;
+            font-size: clamp(7px, 0.9vw, 11px);
+            z-index: 3;
+            opacity: 0.85;
+        }
+
+        #wheel-canvas { max-width: 100%; height: auto; }
+        .roda-wrapper { max-width: 340px; margin: 0 auto; }
+
+        /* ==================== DADU 3D BESAR DI SAMPING ==================== */
+        .dice-cube-big {
+            width: 120px; height: 120px;
+            position: relative;
+            transform-style: preserve-3d;
+            transition: transform 1.2s cubic-bezier(0.2, 0.8, 0.3, 1);
+            margin: 0 auto;
+        }
+        .dice-cube-big .dice-face {
+            position: absolute;
+            width: 120px; height: 120px;
+            background: linear-gradient(135deg, #ffffff, #e2e8f0);
+            border-radius: 16px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 4rem; font-weight: 900; color: #0f172a;
+            box-shadow: inset 0 0 15px rgba(0,0,0,0.2), 0 5px 20px rgba(0,0,0,0.5);
+            border: 2px solid #cbd5e1;
+        }
+        .dice-cube-big .dice-face.f1 { transform: rotateY(  0deg) translateZ(60px); }
+        .dice-cube-big .dice-face.f2 { transform: rotateY( 90deg) translateZ(60px); }
+        .dice-cube-big .dice-face.f3 { transform: rotateY(180deg) translateZ(60px); }
+        .dice-cube-big .dice-face.f4 { transform: rotateY(-90deg) translateZ(60px); }
+        .dice-cube-big .dice-face.f5 { transform: rotateX( 90deg) translateZ(60px); }
+        .dice-cube-big .dice-face.f6 { transform: rotateX(-90deg) translateZ(60px); }
+
+        .dice-side-panel {
+            background: linear-gradient(135deg, rgba(30, 41, 59, 0.95), rgba(15, 23, 42, 0.95));
+            backdrop-filter: blur(10px);
+            border: 2px solid rgba(251, 191, 36, 0.4);
+            border-radius: 20px;
+            padding: 16px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+            cursor: pointer;
+            transition: all 0.3s;
+            user-select: none;
+        }
+        .dice-side-panel:hover:not(.disabled) {
+            border-color: rgba(251, 191, 36, 0.9);
+            transform: translateY(-3px);
+            box-shadow: 0 15px 40px rgba(0,0,0,0.6), 0 0 30px rgba(251, 191, 36, 0.3);
+        }
+        .dice-side-panel.disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            pointer-events: none;
+        }
+        .dice-side-panel.spinning {
+            pointer-events: none;
+            animation: diceShake 0.3s ease-in-out infinite;
+        }
+        @keyframes diceShake {
+            0%, 100% { transform: translate(0, 0) rotate(0deg); }
+            25% { transform: translate(-2px, -2px) rotate(-1deg); }
+            50% { transform: translate(2px, 2px) rotate(1deg); }
+            75% { transform: translate(-1px, 1px) rotate(-0.5deg); }
+        }
+        .dice-side-panel.ready {
+            animation: diceReady 1.5s ease-in-out infinite;
+        }
+        @keyframes diceReady {
+            0%, 100% { box-shadow: 0 10px 30px rgba(0,0,0,0.5), 0 0 0 0 rgba(16, 185, 129, 0.7); }
+            50% { box-shadow: 0 10px 30px rgba(0,0,0,0.5), 0 0 0 15px rgba(16, 185, 129, 0); }
+        }
+        .dice-side-label {
+            font-size: 11px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: #fbbf24;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+            text-align: center;
+            line-height: 1.3;
+        }
+        .dice-side-hint {
+            font-size: 10px;
+            color: #94a3b8;
+            text-align: center;
+            font-weight: 600;
+            line-height: 1.3;
+        }
+        .dice-side-hint.active { color: #6ee7b7; }
+
+        /* Dadu versi kecil untuk modal (jika masih dipakai) */
+        .dice-cube {
+            width: 100px; height: 100px;
+            position: relative;
+            transform-style: preserve-3d;
+            transition: transform 1.2s cubic-bezier(0.2, 0.8, 0.3, 1);
+            margin: 0 auto;
+        }
+        .dice-face {
+            position: absolute;
+            width: 100px; height: 100px;
+            background: linear-gradient(135deg, #ffffff, #e2e8f0);
+            border-radius: 14px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 3rem; font-weight: 900; color: #0f172a;
+            box-shadow: inset 0 0 15px rgba(0,0,0,0.2), 0 5px 20px rgba(0,0,0,0.4);
+            border: 2px solid #cbd5e1;
+        }
+        .dice-face.f1 { transform: rotateY(  0deg) translateZ(50px); }
+        .dice-face.f2 { transform: rotateY( 90deg) translateZ(50px); }
+        .dice-face.f3 { transform: rotateY(180deg) translateZ(50px); }
+        .dice-face.f4 { transform: rotateY(-90deg) translateZ(50px); }
+        .dice-face.f5 { transform: rotateX( 90deg) translateZ(50px); }
+        .dice-face.f6 { transform: rotateX(-90deg) translateZ(50px); }
+
+        @keyframes popupScale {
+            from { transform: scale(0.6); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+        .popup-scale { animation: popupScale 0.35s cubic-bezier(0.34, 1.56, 0.64, 1); }
+
+        .modal-scroll { max-height: 90vh; overflow-y: auto; }
+
+        .cell-editor-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+            gap: 6px;
+        }
+        .cell-editor-item {
+            background: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 8px;
+            padding: 6px;
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+        }
+        .cell-editor-item .num-label {
+            font-weight: 800;
+            font-size: 10px;
+            color: #fbbf24;
+        }
+        .cell-editor-item input {
+            width: 100%;
+            background: #020617;
+            border: 1px solid #334155;
+            border-radius: 4px;
+            padding: 3px 5px;
+            font-size: 10px;
+            color: #e2e8f0;
+        }
+        .cell-editor-item input:focus {
+            outline: none;
+            border-color: #6366f1;
+        }
+
+        /* ==================== SERTIFIKAT ==================== */
+        .certificate-preview {
+            background: linear-gradient(135deg, #fef3c7 0%, #fde68a 50%, #fcd34d 100%);
+            border: 8px double #b45309;
+            border-radius: 12px;
+            padding: 24px 20px;
+            text-align: center;
+            color: #1e293b;
+            position: relative;
+            overflow: hidden;
+            font-family: 'Playfair Display', serif;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+        .certificate-preview::before {
+            content: '';
+            position: absolute;
+            inset: 8px;
+            border: 2px solid rgba(180, 83, 9, 0.3);
+            border-radius: 6px;
+            pointer-events: none;
+        }
+        .cert-title {
+            font-family: 'Playfair Display', serif;
+            font-size: 22px;
+            font-weight: 900;
+            color: #78350f;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            margin-bottom: 4px;
+        }
+        .cert-subtitle {
+            font-family: 'Outfit', sans-serif;
+            font-size: 10px;
+            color: #92400e;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            font-weight: 600;
+        }
+        .cert-medal {
+            font-size: 44px;
+            margin: 8px 0;
+            filter: drop-shadow(0 4px 8px rgba(180, 83, 9, 0.5));
+            animation: medalSpin 3s ease-in-out infinite;
+        }
+        @keyframes medalSpin {
+            0%, 100% { transform: rotate(-5deg) scale(1); }
+            50% { transform: rotate(5deg) scale(1.08); }
+        }
+        .cert-group-name {
+            font-family: 'Playfair Display', serif;
+            font-size: 20px;
+            font-weight: 900;
+            color: #7c2d12;
+            margin: 6px 0;
+            text-decoration: underline;
+            text-decoration-color: #b45309;
+            text-decoration-thickness: 2px;
+            text-underline-offset: 4px;
+        }
+        .cert-desc {
+            font-family: 'Inter', sans-serif;
+            font-size: 10px;
+            color: #78350f;
+            margin: 6px 0;
+            line-height: 1.5;
+        }
+        .cert-members {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 4px;
+            margin: 8px 0;
+        }
+        .cert-member {
+            font-family: 'Inter', sans-serif;
+            font-size: 9px;
+            background: rgba(180, 83, 9, 0.15);
+            padding: 2px 6px;
+            border-radius: 10px;
+            color: #78350f;
+            font-weight: 600;
+            border: 1px solid rgba(180, 83, 9, 0.3);
+        }
+        .cert-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            margin-top: 12px;
+            padding-top: 8px;
+            border-top: 1px dashed rgba(180, 83, 9, 0.4);
+            font-family: 'Inter', sans-serif;
+            font-size: 8px;
+            color: #78350f;
+        }
+        .cert-signature { text-align: center; font-weight: 600; }
+        .cert-signature-line {
+            border-top: 1px solid #78350f;
+            margin-top: 14px;
+            padding-top: 2px;
+            font-size: 7px;
+        }
+        .cert-date { font-size: 8px; font-style: italic; }
+        .cert-star {
+            position: absolute;
+            color: rgba(180, 83, 9, 0.15);
+            font-size: 30px;
+        }
+        .cert-star.s1 { top: 10px; left: 15px; transform: rotate(-15deg); }
+        .cert-star.s2 { top: 10px; right: 15px; transform: rotate(15deg); }
+        .cert-star.s3 { bottom: 10px; left: 15px; transform: rotate(15deg); }
+        .cert-star.s4 { bottom: 10px; right: 15px; transform: rotate(-15deg); }
+
+        .cert-gold { background: linear-gradient(135deg, #fef3c7 0%, #fde68a 50%, #fcd34d 100%); border-color: #b45309; }
+        .cert-silver { background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 50%, #cbd5e1 100%); border-color: #64748b; }
+        .cert-bronze { background: linear-gradient(135deg, #fed7aa 0%, #fdba74 50%, #fb923c 100%); border-color: #9a3412; }
+        .cert-special { background: linear-gradient(135deg, #ddd6fe 0%, #c4b5fd 50%, #a78bfa 100%); border-color: #6d28d9; }
+
+        .cert-silver .cert-title, .cert-silver .cert-group-name, .cert-silver .cert-desc, .cert-silver .cert-footer { color: #334155; }
+        .cert-silver .cert-subtitle { color: #475569; }
+        .cert-silver .cert-member { background: rgba(51, 65, 85, 0.15); color: #334155; border-color: rgba(51, 65, 85, 0.3); }
+        .cert-silver .cert-signature-line { border-color: #334155; }
+        .cert-silver::before { border-color: rgba(51, 65, 85, 0.3); }
+        .cert-silver .cert-star { color: rgba(51, 65, 85, 0.15); }
+
+        .cert-bronze .cert-title, .cert-bronze .cert-group-name, .cert-bronze .cert-desc, .cert-bronze .cert-footer { color: #7c2d12; }
+        .cert-bronze .cert-subtitle { color: #9a3412; }
+        .cert-bronze .cert-member { background: rgba(124, 45, 18, 0.15); color: #7c2d12; border-color: rgba(124, 45, 18, 0.3); }
+        .cert-bronze .cert-signature-line { border-color: #7c2d12; }
+        .cert-bronze::before { border-color: rgba(124, 45, 18, 0.3); }
+        .cert-bronze .cert-star { color: rgba(124, 45, 18, 0.15); }
+
+        .cert-special .cert-title, .cert-special .cert-group-name, .cert-special .cert-desc, .cert-special .cert-footer { color: #4c1d95; }
+        .cert-special .cert-subtitle { color: #6d28d9; }
+        .cert-special .cert-member { background: rgba(76, 29, 149, 0.15); color: #4c1d95; border-color: rgba(76, 29, 149, 0.3); }
+        .cert-special .cert-signature-line { border-color: #4c1d95; }
+        .cert-special::before { border-color: rgba(76, 29, 149, 0.3); }
+        .cert-special .cert-star { color: rgba(76, 29, 149, 0.15); }
+
+        /* ==================== BGM PLAYER ==================== */
+        #bgm-player {
+            position: fixed;
+            bottom: 80px;
+            right: 12px;
+            z-index: 45;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: rgba(15, 23, 42, 0.95);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(99, 102, 241, 0.4);
+            border-radius: 14px;
+            padding: 6px 8px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+            transition: all 0.3s;
+        }
+        #bgm-player.collapsed {
+            padding: 4px;
+            border-radius: 12px;
+        }
+        #bgm-player.collapsed .bgm-expanded { display: none; }
+        .bgm-expanded { display: flex; align-items: center; gap: 6px; }
+        .bgm-btn {
+            width: 32px; height: 32px;
+            display: flex; align-items: center; justify-content: center;
+            border-radius: 8px;
+            background: rgba(99, 102, 241, 0.15);
+            border: 1px solid rgba(99, 102, 241, 0.3);
+            color: #c7d2fe;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 12px;
+        }
+        .bgm-btn:hover {
+            background: rgba(99, 102, 241, 0.3);
+            transform: scale(1.05);
+        }
+        .bgm-btn.playing {
+            background: rgba(16, 185, 129, 0.25);
+            border-color: rgba(16, 185, 129, 0.5);
+            color: #6ee7b7;
+            animation: bgmPulse 1.5s ease-in-out infinite;
+        }
+        @keyframes bgmPulse {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4); }
+            50% { box-shadow: 0 0 0 8px rgba(16, 185, 129, 0); }
+        }
+        .bgm-select {
+            background: rgba(15, 23, 42, 0.9);
+            border: 1px solid rgba(99, 102, 241, 0.3);
+            color: #e0e7ff;
+            border-radius: 8px;
+            padding: 4px 6px;
+            font-size: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            outline: none;
+        }
+        .bgm-select:focus { border-color: #6366f1; }
+        .bgm-volume {
+            width: 60px;
+            height: 4px;
+            -webkit-appearance: none;
+            background: rgba(99, 102, 241, 0.2);
+            border-radius: 2px;
+            outline: none;
+            cursor: pointer;
+        }
+        .bgm-volume::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 12px; height: 12px;
+            background: #6366f1;
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 0 4px rgba(99, 102, 241, 0.8);
+        }
+        .bgm-volume::-moz-range-thumb {
+            width: 12px; height: 12px;
+            background: #6366f1;
+            border-radius: 50%;
+            cursor: pointer;
+            border: none;
+        }
+        .bgm-note {
+            font-size: 10px;
+            color: #a5b4fc;
+            font-weight: 700;
+            max-width: 80px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col selection:bg-brand-500 selection:text-white">
+
+<header class="border-b border-slate-800 bg-slate-900/90 backdrop-blur sticky top-0 z-40 px-4 py-3">
+    <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-600 to-pink-500 flex items-center justify-center text-white font-bold text-xl shadow-lg shadow-brand-500/30">
+                <i class="fa-solid fa-users-gear"></i>
+            </div>
+            <div>
+                <h1 class="heading-font text-lg font-bold bg-gradient-to-r from-white via-indigo-200 to-indigo-400 bg-clip-text text-transparent">
+                    KelasAktif <span class="text-xs px-2 py-0.5 rounded-full bg-brand-500/20 text-brand-300 border border-brand-500/30 font-normal">Gen Alpha PPG</span>
+                </h1>
+                <p class="text-xs text-slate-400">Inovasi Kelompok Lintas Mapel SD (Kelas 1-6)</p>
+            </div>
+        </div>
+
+        <div class="flex items-center bg-slate-800 p-1 rounded-xl border border-slate-700/60 text-xs font-medium">
+            <button id="btn-view-split" onclick="switchView('split')" class="px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-all bg-brand-600 text-white shadow">
+                <i class="fa-solid fa-columns"></i><span class="hidden sm:inline">Split</span>
+            </button>
+            <button id="btn-view-hp" onclick="switchView('hp')" class="px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-all text-slate-400 hover:text-white">
+                <i class="fa-solid fa-mobile-screen"></i><span>HP</span>
+            </button>
+            <button id="btn-view-projector" onclick="switchView('projector')" class="px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-all text-slate-400 hover:text-white">
+                <i class="fa-solid fa-tv"></i><span>Proyektor</span>
+            </button>
+            <button id="btn-view-games" onclick="switchView('games')" class="px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-all text-slate-400 hover:text-white">
+                <i class="fa-solid fa-dice"></i><span>🎮 Games</span>
+            </button>
+        </div>
+
+        <div class="flex items-center gap-2">
+            <button onclick="toggleAudio()" id="btn-sound" class="p-2 w-9 h-9 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 flex items-center justify-center transition" title="Toggle Suara Efek">
+                <i class="fa-solid fa-volume-high" id="icon-sound"></i>
+            </button>
+            <button onclick="openCertificateModal()" class="px-3 py-1.5 rounded-lg bg-amber-950/80 hover:bg-amber-900 border border-amber-700/60 text-xs font-semibold text-amber-200 flex items-center gap-1.5 transition shadow-sm">
+                <i class="fa-solid fa-medal text-amber-400"></i><span>🏅 Sertifikat</span>
+            </button>
+            <button onclick="openProfileModal()" class="px-3 py-1.5 rounded-lg bg-indigo-950/80 hover:bg-indigo-900 border border-indigo-700/60 text-xs font-semibold text-indigo-200 flex items-center gap-1.5 transition shadow-sm">
+                <i class="fa-solid fa-user-graduate text-amber-400"></i><span>Profil</span>
+            </button>
+            <button onclick="openConfigModal()" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-semibold text-slate-200 flex items-center gap-1.5 transition">
+                <i class="fa-solid fa-sliders text-brand-400"></i><span>Pengaturan</span>
+            </button>
+        </div>
+    </div>
+</header>
+
+<main class="flex-1 p-3 md:p-6 max-w-7xl w-full mx-auto grid grid-cols-1 md:grid-cols-12 gap-6 transition-all" id="app-viewport">
+    
+    <section id="panel-hp" class="md:col-span-5 glass-card rounded-2xl p-4 md:p-5 flex flex-col gap-5 border border-slate-700/60 shadow-2xl">
+        <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+            <div class="flex items-center gap-2">
+                <span class="w-3 h-3 rounded-full bg-emerald-500 animate-pulse"></span>
+                <h2 class="heading-font text-base font-bold text-white flex items-center gap-2">
+                    <i class="fa-solid fa-mobile-screen-button text-brand-400"></i>
+                    Panel Kontrol HP Wali Kelas
+                </h2>
+            </div>
+            <span id="label-active-class" class="text-xs font-semibold px-2.5 py-1 rounded-full bg-slate-800 text-indigo-300 border border-slate-700">
+                Kelas 4-6 SD (Tinggi)
+            </span>
+        </div>
+
+        <div class="bg-gradient-to-br from-indigo-900/40 to-slate-900/80 border border-indigo-500/30 rounded-xl p-4 flex flex-col gap-3">
+            <div class="flex justify-between items-center">
+                <div>
+                    <h3 class="font-bold text-sm text-indigo-200">1. Pembagian Peran</h3>
+                    <p class="text-xs text-slate-400">Acak peran otomatis ke seluruh kelompok</p>
+                </div>
+                <i class="fa-solid fa-dice-d20 text-2xl text-indigo-400"></i>
+            </div>
+            <button onclick="triggerSpinRoles()" id="btn-spin" class="w-full py-3 px-4 bg-gradient-to-r from-brand-600 via-indigo-600 to-purple-600 hover:from-brand-500 hover:to-purple-500 active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed text-white font-bold text-sm rounded-xl shadow-lg shadow-indigo-500/25 flex items-center justify-center gap-2 transition duration-200">
+                <i class="fa-solid fa-shuffle text-base"></i>
+                <span>Acak & Bagikan Peran Sekarang!</span>
+            </button>
+        </div>
+
+        <div class="bg-gradient-to-br from-amber-900/30 to-pink-900/20 border border-amber-500/40 rounded-xl p-4 flex flex-col gap-3">
+            <div class="flex justify-between items-center">
+                <div>
+                    <h3 class="font-bold text-sm text-amber-200 flex items-center gap-1.5"><i class="fa-solid fa-dice"></i> 2. Games Presentasi</h3>
+                    <p class="text-xs text-slate-400">Roda keberuntungan + dadu ular tangga</p>
+                </div>
+                <i class="fa-solid fa-trophy text-2xl text-amber-400"></i>
+            </div>
+            <button onclick="switchView('games')" class="w-full py-2.5 px-4 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 active:scale-[0.98] text-white font-bold text-sm rounded-xl shadow-lg flex items-center justify-center gap-2 transition">
+                <i class="fa-solid fa-dharmachakra"></i><span>🎮 Buka Games Panel</span>
+            </button>
+            <div class="grid grid-cols-2 gap-2">
+                <button onclick="openBoardConfigModal()" class="py-1.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-amber-300 font-semibold text-[11px] rounded-lg transition flex items-center justify-center gap-1">
+                    <i class="fa-solid fa-gear"></i> 🪜🐍 Tangga
+                </button>
+                <button onclick="openCellEditorModal()" class="py-1.5 bg-gradient-to-r from-pink-600 to-rose-600 hover:from-pink-500 hover:to-rose-500 text-white font-semibold text-[11px] rounded-lg transition flex items-center justify-center gap-1 shadow">
+                    <i class="fa-solid fa-pen"></i> ✏️ Isi Petak
+                </button>
+            </div>
+            <button onclick="openCertificateModal()" class="w-full py-1.5 bg-gradient-to-r from-amber-600 to-yellow-600 hover:from-amber-500 hover:to-yellow-500 text-white font-semibold text-[11px] rounded-lg transition flex items-center justify-center gap-1 shadow">
+                <i class="fa-solid fa-medal"></i> 🏅 Buat Sertifikat
+            </button>
+            <div class="bg-slate-950/70 rounded-lg p-2.5 text-[11px] text-slate-300 space-y-1">
+                <div class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-emerald-400"></span> Sudah presentasi: <span id="presented-list" class="font-bold text-emerald-300">-</span></div>
+                <div class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-amber-400"></span> Belum presentasi: <span id="not-presented-list" class="font-bold text-amber-300">-</span></div>
+            </div>
+        </div>
+
+        <div class="glass-card-light rounded-xl p-3.5 flex flex-col gap-2.5">
+            <label for="input-mission" class="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
+                <i class="fa-solid fa-bullhorn text-amber-400"></i>
+                Tulis Misi / Instruksi Utama Kelas:
+            </label>
+            <div class="flex gap-2">
+                <input type="text" id="input-mission" value="Diskusi Kelompok: Analisis Rantai Makanan & Buat Diagramnya!" placeholder="Contoh: Kerjakan Soal Hal 45..." class="flex-1 bg-slate-900/90 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-brand-500">
+                <button onclick="updateMission()" class="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-xs font-semibold border border-slate-700 transition">
+                    Kirim
+                </button>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2.5">
+            <div class="glass-card-light rounded-xl p-3 flex flex-col justify-between gap-2">
+                <div class="text-xs font-semibold text-slate-300 flex items-center justify-between">
+                    <span><i class="fa-solid fa-clock text-indigo-400 mr-1"></i> Timer Fokus</span>
+                    <span id="timer-status-badge" class="text-[10px] px-1.5 py-0.5 rounded bg-slate-800 text-slate-400">Ready</span>
+                </div>
+                <div class="flex items-center gap-1.5 my-0.5">
+                    <input type="number" id="input-timer-mins" min="1" max="120" value="15" class="w-14 bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-xs text-white text-center focus:outline-none focus:border-brand-500">
+                    <span class="text-[11px] text-slate-400">menit</span>
+                    <button onclick="applyCustomTimer()" class="px-2 py-1 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-[11px] font-semibold transition">Set</button>
+                </div>
+                <div class="flex items-center gap-1.5">
+                    <button onclick="toggleTimer()" id="btn-timer-toggle" class="flex-1 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-bold transition">
+                        <i class="fa-solid fa-play mr-1"></i> Start
+                    </button>
+                    <button onclick="resetTimer()" class="p-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs transition border border-slate-700" title="Reset">
+                        <i class="fa-solid fa-rotate-left"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div class="glass-card-light rounded-xl p-3 flex flex-col justify-between gap-2">
+                <div class="text-xs font-semibold text-slate-300 flex items-center justify-between">
+                    <span><i class="fa-solid fa-bell text-rose-400 mr-1"></i> Suara Isyarat</span>
+                </div>
+                <div class="flex gap-1.5">
+                    <button onclick="playSFX('bell')" class="flex-1 py-1.5 bg-slate-800 hover:bg-slate-700 text-amber-300 rounded-lg text-xs font-semibold border border-slate-700 transition" title="Bel Perhatian">🔔 Bel</button>
+                    <button onclick="playSFX('cheer')" class="flex-1 py-1.5 bg-slate-800 hover:bg-slate-700 text-pink-300 rounded-lg text-xs font-semibold border border-slate-700 transition" title="Tepuk Tangan">👏 Sorak</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="flex-1 flex flex-col gap-3">
+            <div class="flex items-center justify-between">
+                <h3 class="font-bold text-xs uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                    <i class="fa-solid fa-star text-amber-400"></i> Apresiasi Peran Kelompok
+                </h3>
+                <span class="text-[11px] text-slate-500">Apresiasi Poin Kelompok</span>
+            </div>
+            <div id="teacher-group-list" class="space-y-2.5 overflow-y-auto max-h-[280px] pr-1"></div>
+        </div>
+
+        <div class="pt-2 border-t border-slate-800 flex justify-between items-center text-xs">
+            <button onclick="openSummaryModal()" class="text-indigo-400 hover:text-indigo-300 font-medium flex items-center gap-1">
+                <i class="fa-solid fa-chart-pie"></i> Lihat Rekapitulasi Bintang
+            </button>
+        </div>
+    </section>
+
+    <section id="panel-projector" class="md:col-span-7 glass-card rounded-2xl p-4 md:p-6 flex flex-col gap-6 border border-slate-700/60 shadow-2xl relative overflow-hidden bg-slate-950/80">
+        <div class="absolute -top-24 -right-24 w-72 h-72 bg-brand-600/10 rounded-full blur-3xl pointer-events-none"></div>
+        <div class="absolute -bottom-24 -left-24 w-72 h-72 bg-pink-600/10 rounded-full blur-3xl pointer-events-none"></div>
+
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-slate-900/90 border border-slate-800 rounded-xl p-4 shadow-inner relative z-10">
+            <div>
+                <div class="flex items-center gap-2">
+                    <span class="px-2.5 py-0.5 rounded-md bg-amber-500/20 text-amber-300 border border-amber-500/30 text-xs font-bold uppercase tracking-wider">
+                        <i class="fa-solid fa-bullhorn mr-1"></i> Misi Utama Hari Ini
+                    </span>
+                </div>
+                <h2 id="display-mission-text" class="heading-font text-base md:text-xl font-bold text-white mt-1">
+                    Diskusi Kelompok: Analisis Rantai Makanan & Buat Diagramnya!
+                </h2>
+            </div>
+
+            <div class="flex items-center gap-3 bg-slate-950 px-4 py-2.5 rounded-xl border border-slate-800 shadow-md">
+                <div class="text-right">
+                    <span class="text-[10px] uppercase font-semibold text-slate-400 block tracking-wider">Sisa Waktu Sesi</span>
+                    <span id="display-timer" class="heading-font text-2xl font-black text-amber-400 tracking-wider">15:00</span>
+                </div>
+                <div class="w-10 h-10 rounded-full bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 text-lg">
+                    <i class="fa-solid fa-stopwatch"></i>
+                </div>
+            </div>
+        </div>
+
+        <div id="projector-group-grid" class="grid grid-cols-1 md:grid-cols-2 gap-4 flex-1 relative z-10"></div>
+
+        <div id="classroom-toast" class="hidden absolute bottom-6 left-1/2 -translate-x-1/2 z-30 bg-gradient-to-r from-amber-500 via-pink-500 to-indigo-600 text-white px-6 py-3 rounded-2xl shadow-2xl border-2 border-white/20 flex items-center gap-3">
+            <i class="fa-solid fa-trophy text-2xl text-amber-200"></i>
+            <div>
+                <h4 id="toast-title" class="font-extrabold text-sm heading-font">Selamat Kelompok 1!</h4>
+                <p id="toast-desc" class="text-xs text-amber-100">Mendapatkan +10 Bintang Kerjasama Peran!</p>
+            </div>
+        </div>
+    </section>
+
+    <section id="panel-games" class="hidden md:col-span-12 glass-card rounded-2xl p-4 md:p-6 flex flex-col gap-5 border border-amber-500/40 shadow-2xl relative overflow-hidden bg-slate-950/80">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 pb-3 border-b border-slate-800">
+            <div>
+                <h2 class="heading-font text-lg font-bold text-white flex items-center gap-2">
+                    <i class="fa-solid fa-dice text-amber-400"></i> Papan Ular Tangga Presentasi Kelas
+                </h2>
+                <p id="games-instruction" class="text-xs text-slate-400">Klik <strong class="text-amber-300">RODA</strong> dulu untuk mengundi kelompok, lalu klik <strong class="text-emerald-300">DADU</strong> untuk spin dadu!</p>
+            </div>
+            <div class="flex gap-2 flex-wrap">
+                <button onclick="openWheelModal()" class="px-3 py-1.5 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-white font-bold text-xs rounded-lg shadow flex items-center gap-1.5 transition">
+                    <i class="fa-solid fa-dharmachakra"></i> Roda
+                </button>
+                <button onclick="openCellEditorModal()" class="px-3 py-1.5 bg-gradient-to-r from-pink-600 to-rose-600 hover:from-pink-500 hover:to-rose-500 text-white font-bold text-xs rounded-lg shadow flex items-center gap-1.5 transition">
+                    <i class="fa-solid fa-pen"></i> Isi Petak
+                </button>
+                <button onclick="openCertificateModal()" class="px-3 py-1.5 bg-gradient-to-r from-amber-600 to-yellow-600 hover:from-amber-500 hover:to-yellow-500 text-white font-bold text-xs rounded-lg shadow flex items-center gap-1.5 transition">
+                    <i class="fa-solid fa-medal"></i> Sertifikat
+                </button>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
+            <!-- Kolom kiri: Papan Ular Tangga -->
+            <div class="lg:col-span-8">
+                <div id="board-container" class="bg-slate-900/90 rounded-xl p-2 border border-slate-800 shadow-inner"></div>
+            </div>
+            <!-- Kolom kanan: Dadu Besar & Status -->
+            <div class="lg:col-span-4 space-y-4">
+                <!-- Dadu Besar -->
+                <div id="dice-side-panel" class="dice-side-panel disabled" onclick="spinDiceBig()" title="Klik untuk spin dadu!">
+                    <div class="dice-side-label">🎲 Dadu Presentasi</div>
+                    <div id="dice-cube-big" class="dice-cube-big">
+                        <div class="dice-face f1">1</div>
+                        <div class="dice-face f2">2</div>
+                        <div class="dice-face f3">3</div>
+                        <div class="dice-face f4">4</div>
+                        <div class="dice-face f5">5</div>
+                        <div class="dice-face f6">6</div>
+                    </div>
+                    <div id="dice-side-hint" class="dice-side-hint">🔒 Terkunci — Klik Roda dulu</div>
+                </div>
+
+                <!-- Status sesi aktif -->
+                <div id="active-session-info" class="hidden bg-gradient-to-br from-emerald-900/40 to-slate-900/80 border border-emerald-500/40 rounded-xl p-3">
+                    <div class="text-[10px] uppercase font-bold text-emerald-300 tracking-wider mb-1">🎯 Giliran Presentasi</div>
+                    <div id="active-group-name" class="font-bold text-sm text-white">-</div>
+                    <div class="text-[11px] text-slate-400 mt-0.5">Petak sekarang: <span id="active-group-pion" class="font-bold text-amber-400">0</span></div>
+                </div>
+
+                <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                    <i class="fa-solid fa-flag-checkered"></i> Posisi Pion Kelompok
+                </h3>
+                <div id="pion-status-list" class="space-y-2"></div>
+                <div class="bg-slate-900/80 border border-slate-800 rounded-xl p-3 space-y-1.5">
+                    <h4 class="text-xs font-bold text-amber-300 flex items-center gap-1.5"><i class="fa-solid fa-circle-info"></i> Keterangan</h4>
+                    <div class="flex items-center gap-2 text-[11px] text-slate-300"><span class="w-3 h-3 rounded-sm bg-emerald-500/60 border border-emerald-400"></span> Tangga (Naik)</div>
+                    <div class="flex items-center gap-2 text-[11px] text-slate-300"><span class="w-3 h-3 rounded-sm bg-rose-500/60 border border-rose-400"></span> Ular (Turun)</div>
+                    <div class="flex items-center gap-2 text-[11px] text-slate-300"><span class="w-3 h-3 rounded-sm bg-amber-500/60 border border-amber-400"></span> Event / Hadiah</div>
+                </div>
+            </div>
+        </div>
+    </section>
+</main>
+
+<!-- ==================== BGM PLAYER ==================== -->
+<div id="bgm-player" class="collapsed">
+    <button onclick="toggleBgmPlayer()" id="bgm-collapse-btn" class="bgm-btn" title="Buka Panel Musik">
+        <i class="fa-solid fa-music" id="bgm-collapse-icon"></i>
+    </button>
+    <div class="bgm-expanded">
+        <button onclick="toggleBgmPlay()" id="bgm-play-btn" class="bgm-btn" title="Play/Pause">
+            <i class="fa-solid fa-play" id="bgm-play-icon"></i>
+        </button>
+        <select id="bgm-track-select" class="bgm-select" onchange="changeBgmTrack(this.value)" title="Pilih Musik">
+            <option value="rileks">🌊 Rileks</option>
+            <option value="fokus">🎯 Fokus</option>
+            <option value="semangat">⚡ Semangat</option>
+            <option value="ceria">🎉 Ceria</option>
+            <option value="tenang">🌙 Tenang</option>
+        </select>
+        <i class="fa-solid fa-volume-low text-slate-400 text-xs"></i>
+        <input type="range" id="bgm-volume-slider" class="bgm-volume" min="0" max="100" value="30" oninput="setBgmVolume(this.value)">
+        <span id="bgm-note" class="bgm-note">🌊 Rileks</span>
+    </div>
+</div>
+
+<!-- MODAL: RODA -->
+<div id="modal-wheel" class="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-[70] hidden items-center justify-center p-4">
+    <div class="glass-card rounded-2xl max-w-lg w-full p-6 border border-amber-500/40 shadow-2xl flex flex-col gap-4">
+        <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+            <h3 class="heading-font text-lg font-bold text-white flex items-center gap-2">
+                <i class="fa-solid fa-dharmachakra text-amber-400"></i> Roda Presentasi
+            </h3>
+            <button onclick="closeWheelModal()" class="text-slate-400 hover:text-white text-xl"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+
+        <p class="text-xs text-slate-300 text-center">Klik tombol di bawah untuk mengundi kelompok yang presentasi berikutnya!</p>
+
+        <div class="roda-wrapper relative my-2" style="position: relative;">
+            <canvas id="wheel-canvas" width="340" height="340"></canvas>
+            <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:24px;">
+                <i class="fa-solid fa-arrow-down text-white drop-shadow-lg" style="transform: rotate(0deg); filter: drop-shadow(0 0 6px black);"></i>
+            </div>
+        </div>
+
+        <div id="wheel-result" class="hidden text-center bg-gradient-to-r from-amber-500/20 to-pink-500/20 border border-amber-500/40 rounded-xl p-4 popup-scale">
+            <p class="text-xs text-amber-200 font-semibold uppercase tracking-wider">Giliran Presentasi</p>
+            <h4 id="wheel-winner" class="heading-font text-2xl font-black text-white mt-1">Kelompok -</h4>
+            <p class="text-[11px] text-emerald-300 mt-2 font-semibold">✅ Dadu sekarang aktif! Tutup modal & klik dadu di panel Games.</p>
+        </div>
+
+        <button onclick="spinWheel()" id="btn-spin-wheel" class="w-full py-3 bg-gradient-to-r from-amber-500 via-orange-500 to-pink-500 hover:from-amber-400 hover:to-pink-400 text-white font-bold rounded-xl shadow-lg text-sm flex items-center justify-center gap-2 transition">
+            <i class="fa-solid fa-play"></i> 🎡 PUTAR RODA!
+        </button>
+    </div>
+</div>
+
+<!-- MODAL: PAPAN FULL -->
+<div id="modal-board" class="fixed inset-0 bg-slate-950/95 backdrop-blur-md z-[70] hidden items-center justify-center p-2 md:p-4">
+    <div class="glass-card rounded-2xl max-w-6xl w-full p-3 md:p-5 border border-amber-500/40 shadow-2xl flex flex-col gap-3 modal-scroll">
+        <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+            <h3 class="heading-font text-lg font-bold text-white flex items-center gap-2">
+                <i class="fa-solid fa-table-cells text-amber-400"></i> Papan Ular Tangga KelasAktif
+            </h3>
+            <button onclick="closeBoardModal()" class="text-slate-400 hover:text-white text-xl"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div id="board-container-full" class="bg-slate-900/90 rounded-xl p-2 border border-slate-800"></div>
+    </div>
+</div>
+
+<!-- MODAL: CONFIG PAPAN -->
+<div id="modal-board-config" class="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-[80] hidden items-center justify-center p-4">
+    <div class="glass-card rounded-2xl max-w-3xl w-full p-5 border border-emerald-500/40 shadow-2xl flex flex-col gap-4 modal-scroll">
+        <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+            <h3 class="heading-font text-lg font-bold text-white flex items-center gap-2">
+                <i class="fa-solid fa-gear text-emerald-400"></i> Atur Tangga, Ular & Event
+            </h3>
+            <button onclick="closeBoardConfigModal()" class="text-slate-400 hover:text-white text-xl"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+
+        <div class="flex border-b border-slate-800 text-xs font-semibold gap-2 pb-2 overflow-x-auto">
+            <button onclick="switchBoardTab('ladders')" id="btab-btn-ladders" class="px-3 py-1.5 rounded-lg bg-emerald-600 text-white flex items-center gap-1.5 transition whitespace-nowrap">
+                <i class="fa-solid fa-arrow-up"></i> 🪜 Tangga
+            </button>
+            <button onclick="switchBoardTab('snakes')" id="btab-btn-snakes" class="px-3 py-1.5 rounded-lg text-slate-400 hover:text-white flex items-center gap-1.5 transition whitespace-nowrap">
+                <i class="fa-solid fa-arrow-down"></i> 🐍 Ular
+            </button>
+            <button onclick="switchBoardTab('events')" id="btab-btn-events" class="px-3 py-1.5 rounded-lg text-slate-400 hover:text-white flex items-center gap-1.5 transition whitespace-nowrap">
+                <i class="fa-solid fa-gift"></i> 🎁 Event
+            </button>
+        </div>
+
+        <div id="btab-ladders" class="space-y-3">
+            <p class="text-xs text-slate-300">Atur di angka berapa ada tangga (naik).</p>
+            <div id="ladders-list" class="space-y-2"></div>
+            <button onclick="addLadder()" class="w-full py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-lg transition">+ Tambah Tangga</button>
+        </div>
+
+        <div id="btab-snakes" class="space-y-3 hidden">
+            <p class="text-xs text-slate-300">Atur di angka berapa ada ular (turun).</p>
+            <div id="snakes-list" class="space-y-2"></div>
+            <button onclick="addSnake()" class="w-full py-2 bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs rounded-lg transition">+ Tambah Ular</button>
+        </div>
+
+        <div id="btab-events" class="space-y-3 hidden">
+            <p class="text-xs text-slate-300">Atur event/hadiah di angka tertentu.</p>
+            <div id="events-list" class="space-y-2"></div>
+            <button onclick="addEvent()" class="w-full py-2 bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs rounded-lg transition">+ Tambah Event</button>
+        </div>
+
+        <div class="pt-3 border-t border-slate-800 flex justify-between gap-2">
+            <button onclick="resetBoardConfig()" class="px-3 py-2 bg-rose-950/60 hover:bg-rose-900/60 text-rose-300 rounded-lg text-xs font-semibold border border-rose-800/60 transition">
+                <i class="fa-solid fa-rotate-left"></i> Reset Default
+            </button>
+            <div class="flex gap-2">
+                <button onclick="closeBoardConfigModal()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-semibold border border-slate-700">Batal</button>
+                <button onclick="saveBoardConfig()" class="px-5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold shadow-lg">Simpan</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL: CELL EDITOR -->
+<div id="modal-cell-editor" class="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-[80] hidden items-center justify-center p-4">
+    <div class="glass-card rounded-2xl max-w-4xl w-full p-5 border border-pink-500/40 shadow-2xl flex flex-col gap-4 modal-scroll">
+        <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+            <h3 class="heading-font text-lg font-bold text-white flex items-center gap-2">
+                <i class="fa-solid fa-pen text-pink-400"></i> Editor Teks Petak (1-100)
+            </h3>
+            <button onclick="closeCellEditorModal()" class="text-slate-400 hover:text-white text-xl"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+
+        <p class="text-xs text-slate-300">Isi setiap petak dengan pertanyaan pemantik, instruksi, atau kata-kata menarik.</p>
+
+        <div class="flex flex-wrap gap-2 pb-2 border-b border-slate-800">
+            <button onclick="fillOptionalTexts()" class="px-3 py-1.5 bg-amber-600 hover:bg-amber-500 text-white font-semibold text-xs rounded-lg transition flex items-center gap-1.5">
+                <i class="fa-solid fa-wand-magic-sparkles"></i> Isi "(Pertanyaan Opsional)" di Semua Petak
+            </button>
+            <button onclick="clearAllTexts()" class="px-3 py-1.5 bg-rose-600 hover:bg-rose-500 text-white font-semibold text-xs rounded-lg transition flex items-center gap-1.5">
+                <i class="fa-solid fa-eraser"></i> Kosongkan Semua
+            </button>
+            <div class="text-[11px] text-slate-400 self-center">
+                Petak terisi: <span id="cell-filled-count" class="font-bold text-amber-300">0</span> / 100
+            </div>
+        </div>
+
+        <div id="cell-editor-grid" class="cell-editor-grid"></div>
+
+        <div class="pt-3 border-t border-slate-800 flex justify-end gap-2">
+            <button onclick="closeCellEditorModal()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-semibold border border-slate-700">Batal</button>
+            <button onclick="saveCellTexts()" class="px-5 py-2 bg-pink-600 hover:bg-pink-500 text-white rounded-xl text-xs font-bold shadow-lg">Simpan Semua Teks</button>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL: SERTIFIKAT -->
+<div id="modal-certificate" class="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-[85] hidden items-center justify-center p-4">
+    <div class="glass-card rounded-2xl max-w-4xl w-full p-5 border border-amber-500/40 shadow-2xl flex flex-col gap-4 modal-scroll">
+        <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+            <h3 class="heading-font text-lg font-bold text-white flex items-center gap-2">
+                <i class="fa-solid fa-medal text-amber-400"></i> Sertifikat & Badge Digital
+            </h3>
+            <button onclick="closeCertificateModal()" class="text-slate-400 hover:text-white text-xl"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+
+        <div class="flex border-b border-slate-800 text-xs font-semibold gap-2 pb-2 overflow-x-auto">
+            <button onclick="switchCertTab('champion')" id="cert-tab-champion" class="px-3 py-1.5 rounded-lg bg-amber-600 text-white flex items-center gap-1.5 transition whitespace-nowrap">
+                <i class="fa-solid fa-trophy"></i> 🏆 Juara 1-3
+            </button>
+            <button onclick="switchCertTab('bestrole')" id="cert-tab-bestrole" class="px-3 py-1.5 rounded-lg text-slate-400 hover:text-white flex items-center gap-1.5 transition whitespace-nowrap">
+                <i class="fa-solid fa-star"></i> 🌟 Peran Terbaik
+            </button>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+            <div class="lg:col-span-5 space-y-3">
+                <div id="cert-picker-champion" class="space-y-3">
+                    <p class="text-xs text-slate-300">Pilih kelompok yang akan diberi sertifikat juara:</p>
+                    <div id="cert-champion-list" class="space-y-2"></div>
+                </div>
+                <div id="cert-picker-bestrole" class="space-y-3 hidden">
+                    <p class="text-xs text-slate-300">Pilih peran yang akan diberi penghargaan:</p>
+                    <select id="cert-role-select" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-brand-500"></select>
+                    <p class="text-[11px] text-slate-400 italic">Sertifikat akan mencari siswa dengan peran tersebut.</p>
+                </div>
+            </div>
+
+            <div class="lg:col-span-7">
+                <div id="cert-preview-container"></div>
+            </div>
+        </div>
+
+        <div class="pt-3 border-t border-slate-800 flex justify-between gap-2 flex-wrap">
+            <div class="text-[11px] text-slate-400 self-center">
+                💡 <span class="text-amber-300 font-semibold">Tips:</span> Klik download untuk menyimpan sertifikat sebagai PNG.
+            </div>
+            <div class="flex gap-2">
+                <button onclick="closeCertificateModal()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-semibold border border-slate-700">Tutup</button>
+                <button onclick="downloadCertificate()" id="btn-download-cert" class="px-5 py-2 bg-gradient-to-r from-amber-600 to-yellow-600 hover:from-amber-500 hover:to-yellow-500 text-white rounded-xl text-xs font-bold shadow-lg flex items-center gap-1.5">
+                    <i class="fa-solid fa-download"></i> Download PNG
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL: EVENT -->
+<div id="modal-event" class="fixed inset-0 bg-slate-950/95 backdrop-blur-md z-[90] hidden items-center justify-center p-4">
+    <div class="glass-card rounded-2xl max-w-sm w-full p-6 border-2 border-amber-500/60 shadow-2xl flex flex-col gap-4 text-center popup-scale">
+        <div id="event-emoji" class="text-6xl">🎁</div>
+        <h3 id="event-title" class="heading-font text-2xl font-black text-white">Event!</h3>
+        <p id="event-desc" class="text-sm text-slate-200">Keterangan event.</p>
+        <span id="event-badge" class="text-[11px] px-3 py-1 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 font-bold uppercase tracking-wider inline-block mx-auto">Hadiah</span>
+        <button onclick="closeEventModal()" class="w-full py-2.5 bg-brand-600 hover:bg-brand-500 text-white font-bold rounded-xl text-sm mt-2 transition">Oke, Lanjut!</button>
+    </div>
+</div>
+
+<!-- MODAL: CONFIG -->
+<div id="modal-config" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 hidden items-center justify-center p-4">
+    <div class="glass-card rounded-2xl max-w-2xl w-full p-5 md:p-6 border border-slate-700 shadow-2xl flex flex-col gap-4 modal-scroll">
+        <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+            <h3 class="heading-font text-lg font-bold text-white flex items-center gap-2">
+                <i class="fa-solid fa-gear text-brand-400"></i> Pengaturan Kelas, Data Siswa & Peran
+            </h3>
+            <button onclick="closeConfigModal()" class="text-slate-400 hover:text-white text-xl"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+
+        <div class="flex border-b border-slate-800 text-xs font-semibold gap-2 pb-2 overflow-x-auto">
+            <button onclick="switchConfigTab('tab-roster')" id="tab-btn-roster" class="px-3 py-1.5 rounded-lg bg-brand-600 text-white flex items-center gap-1.5 transition whitespace-nowrap">
+                <i class="fa-solid fa-users"></i> 1. Roster
+            </button>
+            <button onclick="switchConfigTab('tab-roles')" id="tab-btn-roles" class="px-3 py-1.5 rounded-lg text-slate-400 hover:text-white flex items-center gap-1.5 transition whitespace-nowrap">
+                <i class="fa-solid fa-masks-theater"></i> 2. Peran
+            </button>
+            <button onclick="switchConfigTab('tab-manual')" id="tab-btn-manual" class="px-3 py-1.5 rounded-lg text-slate-400 hover:text-white flex items-center gap-1.5 transition whitespace-nowrap">
+                <i class="fa-solid fa-pen-to-square"></i> 3. Edit Kelompok
+            </button>
+        </div>
+
+        <div id="tab-roster" class="space-y-4">
+            <div class="space-y-1.5">
+                <label for="input-roster-text" class="text-xs font-semibold text-indigo-300 flex items-center justify-between">
+                    <span><i class="fa-solid fa-clipboard-user mr-1"></i> Data Siswa Kelas:</span>
+                    <span class="text-[10px] text-slate-400 font-normal">Pisah koma/baris baru</span>
+                </label>
+                <textarea id="input-roster-text" rows="3" placeholder="Contoh: Aditya, Nabila, Rian, Siti..." class="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-brand-500"></textarea>
+            </div>
+
+            <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-3.5 space-y-3">
+                <h4 class="text-xs font-bold text-slate-200 flex items-center gap-1.5">
+                    <i class="fa-solid fa-calculator text-amber-400"></i> Pengaturan Kelompok
+                </h4>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                        <label for="input-num-groups" class="text-[11px] font-semibold text-slate-300 block mb-1">Jumlah Kelompok:</label>
+                        <input type="number" id="input-num-groups" min="1" max="12" value="4" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-brand-500">
+                    </div>
+                    <div>
+                        <label for="input-students-per-group" class="text-[11px] font-semibold text-slate-300 block mb-1">Max Siswa/Kelompok:</label>
+                        <input type="number" id="input-students-per-group" min="1" max="10" value="4" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-brand-500">
+                    </div>
+                </div>
+                <button onclick="autoGenerateGroups()" class="w-full py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs rounded-xl shadow-lg flex items-center justify-center gap-2 transition">
+                    <i class="fa-solid fa-wand-magic-sparkles"></i> Bagi Kelompok Otomatis
+                </button>
+            </div>
+        </div>
+
+        <div id="tab-roles" class="space-y-4 hidden">
+            <div class="space-y-2">
+                <label class="text-xs font-semibold text-slate-300 block">Preset Peran:</label>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                    <button onclick="selectRoleMode('low')" id="preset-btn-low" class="p-2.5 rounded-xl border text-left transition flex flex-col gap-1 bg-slate-800/80 border-slate-700 hover:border-brand-500">
+                        <span class="font-bold text-xs text-indigo-300">🎨 Kelas 1-3 SD</span>
+                        <span class="text-[10px] text-slate-400">4 Peran Visual</span>
+                    </button>
+                    <button onclick="selectRoleMode('high')" id="preset-btn-high" class="p-2.5 rounded-xl border text-left transition flex flex-col gap-1 bg-slate-800/80 border-slate-700 hover:border-brand-500">
+                        <span class="font-bold text-xs text-purple-300">🔍 Kelas 4-6 SD</span>
+                        <span class="text-[10px] text-slate-400">4 Peran Proses</span>
+                    </button>
+                    <button onclick="selectRoleMode('custom')" id="preset-btn-custom" class="p-2.5 rounded-xl border text-left transition flex flex-col gap-1 bg-slate-800/80 border-slate-700 hover:border-brand-500">
+                        <span class="font-bold text-xs text-amber-300">✨ Peran Kustom</span>
+                        <span class="text-[10px] text-slate-400">Dibuat Guru</span>
+                    </button>
+                </div>
+            </div>
+
+            <div id="custom-role-builder" class="bg-slate-900 border border-slate-800 rounded-xl p-3.5 space-y-3">
+                <h4 class="text-xs font-bold text-amber-300 flex items-center gap-1.5"><i class="fa-solid fa-plus-circle"></i> Peran Kustom Baru</h4>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <input type="text" id="input-custom-title" placeholder="Nama Peran" class="bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white">
+                    <select id="input-custom-icon" class="bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white">
+                        <option value="fa-crown">👑 Pemimpin</option>
+                        <option value="fa-pen-to-square">📝 Notulis</option>
+                        <option value="fa-magnifying-glass">🔍 Pengecek</option>
+                        <option value="fa-hourglass-half">⏱️ Waktu</option>
+                        <option value="fa-chalkboard-user">📢 Presenter</option>
+                        <option value="fa-paintbrush">🎨 Pelukis</option>
+                        <option value="fa-broom">🧹 Rapih</option>
+                        <option value="fa-shield-halved">🛡️ Penjaga</option>
+                    </select>
+                </div>
+                <input type="text" id="input-custom-mission" placeholder="Instruksi Tugas" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white">
+                <button onclick="addCustomRole()" class="w-full py-2 bg-amber-600 hover:bg-amber-500 text-slate-950 font-bold text-xs rounded-lg transition">+ Tambah Peran</button>
+            </div>
+
+            <div class="space-y-2">
+                <h4 class="text-xs font-semibold text-slate-300">Daftar Peran Aktif:</h4>
+                <div id="active-roles-list" class="space-y-2 max-h-[180px] overflow-y-auto pr-1"></div>
+            </div>
+        </div>
+
+        <div id="tab-manual" class="space-y-3 hidden">
+            <div class="flex justify-between items-center">
+                <label class="text-xs font-semibold text-slate-300">Daftar Kelompok:</label>
+                <button onclick="addNewGroup()" class="px-2.5 py-1 bg-brand-600 hover:bg-brand-500 text-white rounded-lg text-xs font-semibold transition flex items-center gap-1">
+                    <i class="fa-solid fa-plus"></i> Tambah
+                </button>
+            </div>
+            <div id="config-group-editor" class="space-y-3"></div>
+        </div>
+
+        <div class="pt-3 border-t border-slate-800 flex justify-end gap-2">
+            <button onclick="closeConfigModal()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-semibold border border-slate-700">Batal</button>
+            <button onclick="saveConfiguration()" class="px-5 py-2 bg-brand-600 hover:bg-brand-500 text-white rounded-xl text-xs font-bold shadow-lg">Simpan</button>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL: SUMMARY -->
+<div id="modal-summary" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 hidden items-center justify-center p-4">
+    <div class="glass-card rounded-2xl max-w-lg w-full p-5 md:p-6 border border-slate-700 shadow-2xl flex flex-col gap-4">
+        <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+            <h3 class="heading-font text-lg font-bold text-white flex items-center gap-2">
+                <i class="fa-solid fa-award text-amber-400"></i> Rekapitulasi Bintang
+            </h3>
+            <button onclick="closeSummaryModal()" class="text-slate-400 hover:text-white text-xl"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <p class="text-xs text-slate-300">Rekap pencapaian poin kerjasama kelompok:</p>
+        <div id="summary-leaderboard" class="space-y-2.5 my-1"></div>
+        <div class="pt-3 border-t border-slate-800 flex justify-between items-center">
+            <button onclick="copySummaryText()" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-xs font-semibold border border-slate-700 flex items-center gap-1.5">
+                <i class="fa-solid fa-copy"></i> Salin
+            </button>
+            <button onclick="closeSummaryModal()" class="px-5 py-2 bg-brand-600 hover:bg-brand-500 text-white rounded-xl text-xs font-bold">Tutup</button>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL: PROFILE -->
+<div id="modal-profile" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 hidden items-center justify-center p-4">
+    <div class="glass-card rounded-2xl max-w-lg w-full p-5 md:p-6 border border-slate-700 shadow-2xl flex flex-col gap-4 modal-scroll">
+        <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+            <h3 class="heading-font text-lg font-bold text-white flex items-center gap-2">
+                <i class="fa-solid fa-id-card text-brand-400"></i> Profil Pembuat
+            </h3>
+            <button onclick="closeProfileModal()" class="text-slate-400 hover:text-white text-xl"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+
+        <div class="space-y-4">
+            <div class="bg-gradient-to-br from-indigo-900/60 via-slate-900 to-purple-900/40 p-4 rounded-xl border border-indigo-500/30 flex items-center gap-4">
+                <div id="container-prof-photo" class="w-20 h-20 rounded-2xl bg-gradient-to-tr from-brand-600 to-amber-500 flex items-center justify-center text-white font-bold text-2xl shadow-lg border-2 border-white/20 shrink-0 overflow-hidden">
+                    <img src="https://ui-avatars.com/api/?name=Abdul+Rahmat+Latara&background=4f46e5&color=fff&size=200&bold=true&font-size=0.4" 
+                         alt="Abdul Rahmat Latara, S.Pd" 
+                         class="w-full h-full object-cover rounded-xl"
+                         onerror="this.parentElement.innerHTML='<i class=\'fa-solid fa-user-graduate\'></i>'">
+                </div>
+                <div class="min-w-0 flex-1">
+                    <span class="px-2 py-0.5 rounded-md bg-amber-500/20 text-amber-300 border border-amber-500/30 text-[10px] font-bold uppercase tracking-wider inline-block">
+                        <i class="fa-solid fa-award mr-1"></i> Inovator PPG Gen Alpha
+                    </span>
+                    <h4 class="heading-font text-base font-bold text-white mt-1 truncate">Abdul Rahmat Latara, S.Pd</h4>
+                    <p class="text-xs text-indigo-300 font-medium truncate">Pendidikan Guru Sekolah Dasar (PGSD)</p>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs">
+                <div class="bg-slate-900/90 p-3 rounded-xl border border-slate-800">
+                    <span class="text-slate-400 block text-[10px] uppercase font-semibold tracking-wider"><i class="fa-solid fa-id-badge mr-1"></i> NIM</span>
+                    <span class="font-bold text-white mt-1 block truncate">F06425016</span>
+                </div>
+                <div class="bg-slate-900/90 p-3 rounded-xl border border-slate-800">
+                    <span class="text-slate-400 block text-[10px] uppercase font-semibold tracking-wider"><i class="fa-solid fa-building-columns mr-1"></i> LPTK</span>
+                    <span class="font-bold text-white mt-1 block truncate">Universitas Muhammadiyah Gorontalo</span>
+                </div>
+                <div class="bg-slate-900/90 p-3 rounded-xl border border-slate-800 sm:col-span-2">
+                    <span class="text-slate-400 block text-[10px] uppercase font-semibold tracking-wider"><i class="fa-solid fa-school mr-1"></i> Sekolah PPL</span>
+                    <span class="font-bold text-white mt-1 block truncate">SDN 4 Limboto</span>
+                </div>
+            </div>
+
+            <div class="bg-slate-900/60 p-3.5 rounded-xl border border-slate-800">
+                <span class="text-amber-400 text-xs font-semibold flex items-center gap-1 mb-1.5"><i class="fa-solid fa-quote-left"></i> Visi Inovasi:</span>
+                <p class="text-xs text-slate-300 italic leading-relaxed">
+                    "Mewujudkan pembelajaran abad 21 yang aktif, kolaboratif, dan menyenangkan bagi Generasi Alpha melalui pemberdayaan peran siswa dalam kelompok."
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL: SHARE -->
+<div id="modal-share" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-[60] hidden items-center justify-center p-4">
+    <div class="glass-card rounded-2xl max-w-md w-full p-6 border border-slate-700 shadow-2xl flex flex-col gap-4">
+        <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+            <h3 class="heading-font text-lg font-bold text-white flex items-center gap-2">
+                <i class="fa-solid fa-wifi text-emerald-400"></i> Bagikan Kode Kelas
+            </h3>
+            <button onclick="closeShareModal()" class="text-slate-400 hover:text-white text-xl"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="text-center py-4">
+            <p class="text-xs text-slate-400 mb-2">Kode kelas untuk HP Guru:</p>
+            <div id="share-room-code" class="heading-font text-6xl font-black text-white tracking-[0.3em] bg-slate-900 border-2 border-brand-500/40 rounded-2xl py-6 shadow-inner">------</div>
+        </div>
+        <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-3 space-y-2">
+            <p class="text-[11px] text-slate-400 font-semibold uppercase tracking-wider">Atau bagikan link ini:</p>
+            <input type="text" id="share-room-link" readonly class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-[11px] text-slate-300 font-mono">
+        </div>
+        <div class="grid grid-cols-2 gap-2">
+            <button onclick="copyShareCode()" class="py-2.5 bg-brand-600 hover:bg-brand-500 text-white font-bold rounded-xl text-xs flex items-center justify-center gap-1.5 transition"><i class="fa-solid fa-copy"></i> Salin Kode</button>
+            <button onclick="copyShareLink()" class="py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl text-xs flex items-center justify-center gap-1.5 transition"><i class="fa-brands fa-whatsapp"></i> Salin Link</button>
+        </div>
+    </div>
+</div>
+
+<!-- FIREBASE SDK -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getDatabase, ref, set, onValue, update, serverTimestamp }
+  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyDvHbIidzp_bGJoZYrzCU51HL4ui1RuHuY",
+  authDomain: "kelasaktif-93761.firebaseapp.com",
+  databaseURL: "https://kelasaktif-93761-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "kelasaktif-93761",
+  storageBucket: "kelasaktif-93761.firebasestorage.app",
+  messagingSenderId: "921381825144",
+  appId: "1:921381825144:web:1c692930a1e35694665b8d",
+  measurementId: "G-1FLX747Z88"
+};
+
+let app, db;
+try {
+    app = initializeApp(firebaseConfig);
+    db = getDatabase(app);
+    console.log("✅ Firebase terhubung!");
+} catch(e) { console.error("❌ Firebase error:", e); }
+
+window.FB = { db, ref, set, onValue, update, serverTimestamp };
+window.dispatchEvent(new Event('firebase-ready'));
+</script>
+
+<!-- MAIN APP LOGIC -->
+<script>
+/* ====================== STATE ====================== */
+let audioEnabled = true;
+let roleMode = 'high';
+let timerSeconds = 15 * 60;
+let timerInterval = null;
+let isTimerRunning = false;
+let isSpinning = false;
+let isWheelSpinning = false;
+let isDiceBigRolling = false;
+
+let roomId = null;
+let isHost = false;
+let syncUnsubscribe = [];
+let firebaseReady = false;
+
+// ==================== STATE GAME ====================
+let activeGroupId = null;      // Kelompok yang sedang presentasi (dari roda)
+let diceReady = false;          // Dadu siap diputar (setelah roda berhenti)
+let lastDiceResult = null;      // Hasil dadu terakhir
+
+/* ====================== BACKGROUND MUSIC ====================== */
+let bgmCtx = null;
+let bgmPlaying = false;
+let bgmCurrentTrack = 'rileks';
+let bgmVolume = 0.3;
+let bgmTimer = null;
+
+const BGM_TRACKS = {
+    rileks: { name: 'Rileks', emoji: '🌊', baseTempo: 800,
+        chords: [[220.00, 261.63, 329.63], [174.61, 220.00, 261.63], [130.81, 164.81, 196.00], [196.00, 246.94, 293.66]],
+        wave: 'sine', filterFreq: 800 },
+    fokus: { name: 'Fokus', emoji: '🎯', baseTempo: 1000,
+        chords: [[261.63, 329.63, 392.00], [293.66, 369.99, 440.00], [220.00, 277.18, 329.63], [196.00, 246.94, 293.66]],
+        wave: 'triangle', filterFreq: 600 },
+    semangat: { name: 'Semangat', emoji: '⚡', baseTempo: 500,
+        chords: [[261.63, 329.63, 392.00], [349.23, 440.00, 523.25], [392.00, 493.88, 587.33], [329.63, 415.30, 493.88]],
+        wave: 'sawtooth', filterFreq: 1200 },
+    ceria: { name: 'Ceria', emoji: '🎉', baseTempo: 600,
+        chords: [[523.25, 659.25, 783.99], [587.33, 739.99, 880.00], [493.88, 622.25, 739.99], [440.00, 554.37, 659.25]],
+        wave: 'sine', filterFreq: 1500 },
+    tenang: { name: 'Tenang', emoji: '🌙', baseTempo: 1200,
+        chords: [[196.00, 246.94, 293.66], [174.61, 220.00, 261.63], [130.81, 164.81, 196.00], [146.83, 185.00, 220.00]],
+        wave: 'sine', filterFreq: 500 }
+};
+
+function getBgmCtx() {
+    if (!bgmCtx) { try { bgmCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch(e) { return null; } }
+    if (bgmCtx.state === 'suspended') bgmCtx.resume();
+    return bgmCtx;
+}
+
+function playBgmChord(frequencies, duration = 1.5) {
+    const ctx = getBgmCtx(); if (!ctx) return;
+    const now = ctx.currentTime;
+    const track = BGM_TRACKS[bgmCurrentTrack];
+    const masterGain = ctx.createGain();
+    masterGain.gain.setValueAtTime(0, now);
+    masterGain.gain.linearRampToValueAtTime(bgmVolume * 0.15, now + 0.1);
+    masterGain.gain.setValueAtTime(bgmVolume * 0.15, now + duration - 0.3);
+    masterGain.gain.linearRampToValueAtTime(0, now + duration);
+    const filter = ctx.createBiquadFilter();
+    filter.type = 'lowpass'; filter.frequency.value = track.filterFreq; filter.Q.value = 1;
+    frequencies.forEach(freq => {
+        const osc1 = ctx.createOscillator();
+        osc1.type = track.wave; osc1.frequency.value = freq;
+        const osc2 = ctx.createOscillator();
+        osc2.type = track.wave; osc2.frequency.value = freq * 1.005; osc2.detune.value = -8;
+        const subOsc = ctx.createOscillator();
+        subOsc.type = 'sine'; subOsc.frequency.value = freq / 2;
+        const subGain = ctx.createGain(); subGain.gain.value = 0.3;
+        subOsc.connect(subGain);
+        const oscGain = ctx.createGain(); oscGain.gain.value = 0.25;
+        osc1.connect(oscGain); osc2.connect(oscGain); subGain.connect(oscGain); oscGain.connect(filter);
+        osc1.start(now); osc2.start(now); subOsc.start(now);
+        osc1.stop(now + duration); osc2.stop(now + duration); subOsc.stop(now + duration);
+    });
+    filter.connect(masterGain); masterGain.connect(ctx.destination);
+}
+
+function startBgmLoop() {
+    if (bgmTimer) clearInterval(bgmTimer);
+    const track = BGM_TRACKS[bgmCurrentTrack];
+    let chordIndex = 0;
+    const playNext = () => {
+        if (!bgmPlaying) return;
+        const chord = track.chords[chordIndex % track.chords.length];
+        playBgmChord(chord, track.baseTempo / 1000 * 1.8);
+        chordIndex++;
+    };
+    playNext();
+    bgmTimer = setInterval(playNext, track.baseTempo);
+}
+
+function toggleBgmPlay() {
+    const playIcon = document.getElementById('bgm-play-icon');
+    const playBtn = document.getElementById('bgm-play-btn');
+    if (bgmPlaying) {
+        bgmPlaying = false;
+        if (bgmTimer) { clearInterval(bgmTimer); bgmTimer = null; }
+        playIcon.className = 'fa-solid fa-play';
+        playBtn.classList.remove('playing');
+    } else {
+        getBgmCtx(); bgmPlaying = true; startBgmLoop();
+        playIcon.className = 'fa-solid fa-pause';
+        playBtn.classList.add('playing');
+        playSFX('chime');
+    }
+}
+
+function changeBgmTrack(trackKey) {
+    if (!BGM_TRACKS[trackKey]) return;
+    bgmCurrentTrack = trackKey;
+    localStorage.setItem('kelasaktif_bgm_track', trackKey);
+    const track = BGM_TRACKS[trackKey];
+    document.getElementById('bgm-note').textContent = `${track.emoji} ${track.name}`;
+    if (bgmPlaying) { if (bgmTimer) clearInterval(bgmTimer); startBgmLoop(); }
+}
+
+function setBgmVolume(val) {
+    bgmVolume = val / 100;
+    localStorage.setItem('kelasaktif_bgm_volume', val);
+}
+
+function toggleBgmPlayer() {
+    const player = document.getElementById('bgm-player');
+    const icon = document.getElementById('bgm-collapse-icon');
+    player.classList.toggle('collapsed');
+    if (player.classList.contains('collapsed')) icon.className = 'fa-solid fa-music';
+    else icon.className = 'fa-solid fa-chevron-right';
+}
+
+function initBgm() {
+    const savedTrack = localStorage.getItem('kelasaktif_bgm_track') || 'rileks';
+    const savedVolume = localStorage.getItem('kelasaktif_bgm_volume') || '30';
+    bgmCurrentTrack = savedTrack;
+    bgmVolume = parseInt(savedVolume) / 100;
+    document.getElementById('bgm-track-select').value = savedTrack;
+    document.getElementById('bgm-volume-slider').value = savedVolume;
+    const track = BGM_TRACKS[savedTrack];
+    document.getElementById('bgm-note').textContent = `${track.emoji} ${track.name}`;
+    const autoplay = () => {
+        if (!bgmPlaying) {
+            const ctx = getBgmCtx();
+            if (ctx && ctx.state === 'running') {
+                bgmPlaying = true; startBgmLoop();
+                const playIcon = document.getElementById('bgm-play-icon');
+                const playBtn = document.getElementById('bgm-play-btn');
+                if (playIcon) playIcon.className = 'fa-solid fa-pause';
+                if (playBtn) playBtn.classList.add('playing');
+                document.removeEventListener('click', autoplay);
+                document.removeEventListener('touchstart', autoplay);
+            }
+        }
+    };
+    document.addEventListener('click', autoplay);
+    document.addEventListener('touchstart', autoplay);
+}
+
+/* ====================== ROLE PRESETS ====================== */
+const ROLE_PRESETS = {
+    low: [
+        { id: 'pelukis', title: 'Si Pelukis / Pencatat', icon: 'fa-paintbrush', color: 'bg-blue-500/20 text-blue-300 border-blue-500/40', mission: 'Menulis atau menggambar hasil karya kelompok.' },
+        { id: 'bicara', title: 'Si Juru Bicara', icon: 'fa-comments', color: 'bg-pink-500/20 text-pink-300 border-pink-500/40', mission: 'Menceritakan hasil diskusi ke depan kelas.' },
+        { id: 'rapih', title: 'Si Kapten Rapih', icon: 'fa-broom', color: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40', mission: 'Menjaga kebersihan & merapikan meja kelompok.' },
+        { id: 'senyap', title: 'Si Penjaga Senyap', icon: 'fa-shield-halved', color: 'bg-purple-500/20 text-purple-300 border-purple-500/40', mission: 'Mengingatkan teman agar berbicara pelan.' }
+    ],
+    high: [
+        { id: 'notulis', title: 'Notulis Utama', icon: 'fa-pen-to-square', color: 'bg-blue-500/20 text-blue-300 border-blue-500/40', mission: 'Mencatat poin penting jawaban diskusi.' },
+        { id: 'pengecek', title: 'Pengecek Ketelitian', icon: 'fa-magnifying-glass', color: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40', mission: 'Memastikan semua soal terjawab lengkap.' },
+        { id: 'manajer', title: 'Manajer Waktu', icon: 'fa-hourglass-half', color: 'bg-amber-500/20 text-amber-300 border-amber-500/40', mission: 'Mengingatkan sisa waktu pengerjaan tugas.' },
+        { id: 'presenter', title: 'Presenter Handal', icon: 'fa-chalkboard-user', color: 'bg-purple-500/20 text-purple-300 border-purple-500/40', mission: 'Memimpin presentasi dan menjawab pertanyaan.' }
+    ]
+};
+
+const PION_COLORS = ['#3b82f6', '#facc15', '#10b981', '#ef4444', '#a855f7', '#ec4899', '#14b8a6', '#f97316', '#06b6d4', '#84cc16', '#e11d48', '#6366f1'];
+
+const DEFAULT_LADDERS = [
+    { from: 4, to: 25 }, { from: 13, to: 46 }, { from: 33, to: 49 },
+    { from: 42, to: 63 }, { from: 50, to: 69 }, { from: 62, to: 81 }, { from: 74, to: 92 }
+];
+const DEFAULT_SNAKES = [
+    { from: 17, to: 7 }, { from: 54, to: 34 }, { from: 64, to: 60 },
+    { from: 87, to: 24 }, { from: 93, to: 73 }, { from: 98, to: 79 }
+];
+const DEFAULT_EVENTS = [
+    { pos: 10, emoji: '🍪', title: 'Snack Time!', desc: 'Kelompok dapat snack dari guru!', jenis: 'hadiah' },
+    { pos: 25, emoji: '💃', title: 'Dansa 10 Detik!', desc: 'Semua anggota dansa 10 detik!', jenis: 'challenge' },
+    { pos: 40, emoji: '🎤', title: 'Nyanyi 1 Bait!', desc: 'Nyanyi lagu favorit 1 bait!', jenis: 'challenge' },
+    { pos: 55, emoji: '🍫', title: 'Cokelat!', desc: 'Dapat cokelat dari guru!', jenis: 'hadiah' },
+    { pos: 85, emoji: '🎁', title: 'Hadiah Misteri!', desc: 'Buka kotak misteri dari guru!', jenis: 'hadiah' },
+    { pos: 100, emoji: '🏆', title: 'JUARA!', desc: 'Kelompok pertama sampai 100 = JUARA!', jenis: 'hadiah' }
+];
+
+const DEFAULT_CELL_TEXTS = (() => {
+    const obj = {};
+    obj[1] = 'Start';
+    obj[100] = 'Finish';
+    for (let i = 2; i <= 99; i++) obj[i] = '(Pertanyaan Opsional)';
+    return obj;
+})();
+
+let appState = {
+    mission: "Diskusi Kelompok: Analisis Rantai Makanan & Buat Diagramnya!",
+    allStudentsText: "Aditya, Nabila, Rian, Siti, Budi, Dewi, Fajar, Gita, Hasan, Intan, Joko, Lani, Maya, Niko, Oky, Putri",
+    customRoles: [
+        { id: 'c1', title: 'Si Pemimpin', icon: 'fa-crown', color: 'bg-amber-500/20 text-amber-300 border-amber-500/40', mission: 'Memimpin jalannya diskusi kelompok.' },
+        { id: 'c2', title: 'Si Pencatat', icon: 'fa-pen-to-square', color: 'bg-blue-500/20 text-blue-300 border-blue-500/40', mission: 'Mencatat hasil jawaban kelompok.' },
+        { id: 'c3', title: 'Si Peneliti', icon: 'fa-magnifying-glass', color: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40', mission: 'Mencari informasi di buku atau materi.' },
+        { id: 'c4', title: 'Si Presenter', icon: 'fa-chalkboard-user', color: 'bg-purple-500/20 text-purple-300 border-purple-500/40', mission: 'Mempresentasikan hasil kelompok.' }
+    ],
+    groups: [
+        { id: 'g1', name: 'Kelompok 1 (Garuda)', stars: 20, students: [{ name: 'Aditya', role: null }, { name: 'Nabila', role: null }, { name: 'Rian', role: null }, { name: 'Siti', role: null }], pion: 0, presented: false, color: PION_COLORS[0] },
+        { id: 'g2', name: 'Kelompok 2 (Rajawali)', stars: 20, students: [{ name: 'Budi', role: null }, { name: 'Dewi', role: null }, { name: 'Fajar', role: null }, { name: 'Gita', role: null }], pion: 0, presented: false, color: PION_COLORS[1] },
+        { id: 'g3', name: 'Kelompok 3 (Komodo)', stars: 20, students: [{ name: 'Hasan', role: null }, { name: 'Intan', role: null }, { name: 'Joko', role: null }, { name: 'Lani', role: null }], pion: 0, presented: false, color: PION_COLORS[2] },
+        { id: 'g4', name: 'Kelompok 4 (Cendrawasih)', stars: 20, students: [{ name: 'Maya', role: null }, { name: 'Niko', role: null }, { name: 'Oky', role: null }, { name: 'Putri', role: null }], pion: 0, presented: false, color: PION_COLORS[3] }
+    ],
+    board: {
+        ladders: JSON.parse(JSON.stringify(DEFAULT_LADDERS)),
+        snakes: JSON.parse(JSON.stringify(DEFAULT_SNAKES)),
+        events: JSON.parse(JSON.stringify(DEFAULT_EVENTS)),
+        cellTexts: JSON.parse(JSON.stringify(DEFAULT_CELL_TEXTS))
+    }
+};
+
+/* ====================== ROOM ====================== */
+function generateRoomCode() { return Math.floor(100000 + Math.random() * 900000).toString(); }
+function getRoomFromURL() { return new URLSearchParams(window.location.search).get('room'); }
+
+function createRoomAsHost() {
+    if (!window.FB) { alert("Firebase belum siap."); return; }
+    roomId = generateRoomCode(); isHost = true;
+    localStorage.setItem('kelasaktif_room', roomId);
+    const FB = window.FB;
+    FB.set(FB.ref(FB.db, 'rooms/' + roomId), {
+        hostOnline: true, createdAt: Date.now(),
+        mission: appState.mission, timerSeconds: timerSeconds, isTimerRunning: false,
+        groups: appState.groups, roleMode: roleMode, customRoles: appState.customRoles,
+        board: appState.board
+    }).then(() => {
+        subscribeToRoom(); updateURL('host'); showRoomBadge();
+        showClassroomToast("🎯 Room Dibuat!", "Kode Kelas: " + roomId);
+        playSFX('chime'); setTimeout(openShareModal, 600);
+    }).catch(err => { console.error(err); alert("Gagal buat room."); });
+}
+
+function joinRoomAsClient(code) {
+    if (!window.FB) { alert("Firebase belum siap."); return; }
+    roomId = code; isHost = false;
+    localStorage.setItem('kelasaktif_room', roomId);
+    const FB = window.FB;
+    FB.onValue(FB.ref(FB.db, 'rooms/' + roomId), (snap) => {
+        if (!snap.exists()) {
+            showClassroomToast("⚠️ Room Tidak Ditemukan", "Kode salah atau host belum aktif.");
+            localStorage.removeItem('kelasaktif_room');
+        }
+    }, { onlyOnce: true });
+    subscribeToRoom(); updateURL('client'); showRoomBadge();
+    showClassroomToast("✅ Terhubung!", "Terhubung ke kelas " + roomId);
+    playSFX('chime');
+}
+
+function updateURL(mode) {
+    const url = new URL(window.location);
+    url.searchParams.set('room', roomId); url.searchParams.set('mode', mode);
+    window.history.replaceState({}, '', url);
+}
+
+function subscribeToRoom() {
+    if (!roomId || !window.FB) return;
+    const FB = window.FB;
+    const roomRef = FB.ref(FB.db, 'rooms/' + roomId);
+    syncUnsubscribe.forEach(fn => fn()); syncUnsubscribe = [];
+    const unsub = FB.onValue(roomRef, (snap) => {
+        const data = snap.val();
+        if (!data) return;
+        if (data.mission && data.mission !== appState.mission) {
+            appState.mission = data.mission;
+            document.getElementById('display-mission-text').textContent = data.mission;
+            const mis = document.getElementById('input-mission');
+            if (mis && document.activeElement !== mis) mis.value = data.mission;
+        }
+        if (data.groups) {
+            appState.groups = data.groups;
+            renderTeacherPanel(); renderProjectorView(); renderBoard(); renderPionStatus();
+        }
+        if (data.customRoles) appState.customRoles = data.customRoles;
+        if (data.board) { appState.board = data.board; renderBoard(); }
+        if (data.roleMode) {
+            roleMode = data.roleMode;
+            const label = document.getElementById('label-active-class');
+            if (label) label.textContent = roleMode === 'low' ? 'Kelas 1-3 SD (Rendah)' : roleMode === 'high' ? 'Kelas 4-6 SD (Tinggi)' : 'Peran Kustom Guru';
+        }
+        if (typeof data.timerSeconds === 'number') {
+            if (!isHost || !isTimerRunning) { timerSeconds = data.timerSeconds; updateTimerDisplay(); }
+        }
+        if (typeof data.isTimerRunning === 'boolean' && !isHost) {
+            if (data.isTimerRunning && !isTimerRunning) startTimerLocal();
+            else if (!data.isTimerRunning && isTimerRunning) stopTimerLocal();
+        }
+    });
+    syncUnsubscribe.push(() => unsub());
+}
+
+function pushStateToCloud(partial = null) {
+    if (!roomId || !window.FB) return;
+    const FB = window.FB;
+    const roomRef = FB.ref(FB.db, 'rooms/' + roomId);
+    const payload = partial || {
+        mission: appState.mission, groups: appState.groups,
+        timerSeconds: timerSeconds, isTimerRunning: isTimerRunning,
+        roleMode: roleMode, customRoles: appState.customRoles, board: appState.board
+    };
+    FB.update(roomRef, payload);
+}
+
+/* ====================== ROOM DIALOG ====================== */
+function showRoomJoinDialog() {
+    const div = document.createElement('div');
+    div.id = 'room-join-dialog';
+    div.className = 'fixed inset-0 bg-slate-950/90 backdrop-blur-md z-[100] flex items-center justify-center p-4';
+    div.innerHTML = `
+        <div class="glass-card rounded-2xl max-w-sm w-full p-6 border border-slate-700 shadow-2xl flex flex-col gap-4">
+            <div class="text-center">
+                <div class="w-16 h-16 mx-auto rounded-2xl bg-gradient-to-tr from-brand-600 to-pink-500 flex items-center justify-center text-white text-2xl shadow-lg mb-2"><i class="fa-solid fa-wifi"></i></div>
+                <h3 class="heading-font text-lg font-bold text-white">Hubungkan Kelas</h3>
+                <p class="text-xs text-slate-400 mt-1">Pilih mode: Host di laptop, Client di HP</p>
+            </div>
+            <button onclick="startAsHost()" class="w-full py-3 bg-gradient-to-r from-brand-600 to-purple-600 hover:from-brand-500 hover:to-purple-500 text-white font-bold rounded-xl shadow-lg transition"><i class="fa-solid fa-tv mr-2"></i>Jadi Host</button>
+            <div class="flex items-center gap-2 text-xs text-slate-500"><div class="flex-1 h-px bg-slate-700"></div><span>ATAU</span><div class="flex-1 h-px bg-slate-700"></div></div>
+            <input type="text" id="room-input" placeholder="Kode Kelas (6 digit)" maxlength="6" inputmode="numeric" class="w-full text-center text-2xl font-black tracking-[0.4em] bg-slate-900 border-2 border-brand-500/40 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-brand-500">
+            <button onclick="submitJoinRoom()" class="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl shadow-lg transition"><i class="fa-solid fa-plug mr-2"></i>Hubungkan</button>
+        </div>`;
+    document.body.appendChild(div);
+    setTimeout(() => document.getElementById('room-input')?.focus(), 100);
+}
+function submitJoinRoom() {
+    const code = document.getElementById('room-input').value.trim();
+    if (!/^\d{6}$/.test(code)) { showClassroomToast("⚠️ Kode Tidak Valid", "Kode kelas 6 digit angka."); return; }
+    document.getElementById('room-join-dialog')?.remove();
+    joinRoomAsClient(code);
+}
+function startAsHost() { document.getElementById('room-join-dialog')?.remove(); createRoomAsHost(); }
+
+/* ====================== SHARE ====================== */
+function openShareModal() {
+    if (!roomId) { showClassroomToast("⚠️ Belum Ada Room", "Buat room dulu sebagai Host."); return; }
+    document.getElementById('share-room-code').textContent = roomId;
+    const url = new URL(window.location);
+    url.searchParams.set('room', roomId); url.searchParams.set('mode', 'client');
+    document.getElementById('share-room-link').value = url.toString();
+    const modal = document.getElementById('modal-share');
+    modal.classList.remove('hidden'); modal.classList.add('flex');
+}
+function closeShareModal() { const m = document.getElementById('modal-share'); m.classList.add('hidden'); m.classList.remove('flex'); }
+function copyShareCode() { fallbackCopyText(roomId, "📋 Kode Disalin!", "Kode " + roomId + " siap dibagikan."); }
+function copyShareLink() { fallbackCopyText(document.getElementById('share-room-link').value, "📋 Link Disalin!", "Kirim link ini via WhatsApp."); }
+
+/* ====================== ROOM BADGE ====================== */
+function showRoomBadge() {
+    let badge = document.getElementById('room-badge');
+    if (!badge) {
+        badge = document.createElement('div');
+        badge.id = 'room-badge';
+        badge.className = 'fixed bottom-3 right-3 z-40 flex items-center gap-2 bg-slate-900/95 backdrop-blur border border-brand-500/40 rounded-xl px-3 py-2 shadow-2xl';
+        document.body.appendChild(badge);
+    }
+    badge.innerHTML = `
+        <span class="w-2 h-2 rounded-full ${isHost ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500 animate-pulse'}"></span>
+        <div class="flex flex-col">
+            <span class="text-[9px] uppercase font-bold text-slate-400 tracking-wider">${isHost ? 'HOST' : 'CLIENT'}</span>
+            <span class="font-mono text-sm font-black text-white tracking-widest">${roomId || '------'}</span>
+        </div>
+        <button onclick="openShareModal()" class="ml-1 p-1.5 rounded-lg bg-brand-600 hover:bg-brand-500 text-white transition" title="Bagikan"><i class="fa-solid fa-share-nodes text-xs"></i></button>
+        <button onclick="leaveRoom()" class="p-1.5 rounded-lg bg-rose-900/60 hover:bg-rose-800/60 text-rose-300 transition" title="Keluar"><i class="fa-solid fa-right-from-bracket text-xs"></i></button>`;
+}
+function leaveRoom() {
+    if (!confirm("Keluar dari room kelas ini?")) return;
+    localStorage.removeItem('kelasaktif_room');
+    const url = new URL(window.location);
+    url.searchParams.delete('room'); url.searchParams.delete('mode');
+    window.location.href = url.toString();
+}
+
+/* ====================== AUDIO (SFX) ====================== */
+let audioCtx = null;
+function getAudioContext() {
+    if (!audioCtx) { try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch(e) { return null; } }
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    return audioCtx;
+}
+function playSFX(type) {
+    if (!audioEnabled) return;
+    try {
+        const ctx = getAudioContext(); if (!ctx) return;
+        const now = ctx.currentTime;
+        const tone = (freq, dur, oscType = 'sine', vol = 0.1, delay = 0) => {
+            const osc = ctx.createOscillator(); const gain = ctx.createGain();
+            osc.type = oscType; osc.frequency.setValueAtTime(freq, now + delay);
+            gain.gain.setValueAtTime(vol, now + delay);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + delay + dur);
+            osc.connect(gain); gain.connect(ctx.destination);
+            osc.start(now + delay); osc.stop(now + delay + dur);
+        };
+        switch(type) {
+            case 'spin': tone(400, 0.1, 'sine', 0.1); break;
+            case 'chime': case 'star': [523.25, 659.25, 783.99, 1046.50].forEach((f, i) => tone(f, 0.3, 'triangle', 0.2, i * 0.08)); break;
+            case 'penalty': case 'buzz': tone(180, 0.3, 'sawtooth', 0.2); setTimeout(() => tone(110, 0.3, 'sawtooth', 0.15), 100); break;
+            case 'bell': tone(880, 1.2, 'sine', 0.3); tone(1760, 0.8, 'sine', 0.1, 0.05); break;
+            case 'cheer': [440, 554.37, 659.25, 880].forEach(f => tone(f, 0.6, 'sawtooth', 0.12)); break;
+            case 'dice': [200, 300, 250, 350, 280].forEach((f, i) => tone(f, 0.08, 'square', 0.08, i * 0.08)); break;
+            case 'ladder': [523.25, 659.25, 783.99, 1046.50, 1318.51].forEach((f, i) => tone(f, 0.15, 'sine', 0.15, i * 0.08)); break;
+            case 'snake': [880, 740, 622, 523, 440, 349].forEach((f, i) => tone(f, 0.15, 'sawtooth', 0.13, i * 0.08)); break;
+            case 'gift': [659.25, 783.99, 1046.50, 1318.51].forEach((f, i) => tone(f, 0.2, 'triangle', 0.2, i * 0.09)); break;
+            case 'win': [523.25, 659.25, 783.99, 1046.50, 1318.51, 1567.98].forEach((f, i) => tone(f, 0.3, 'triangle', 0.22, i * 0.1)); break;
+            case 'cert': [523.25, 659.25, 783.99, 1046.50, 1318.51].forEach((f, i) => tone(f, 0.3, 'triangle', 0.2, i * 0.1)); break;
+        }
+    } catch(e) {}
+}
+function toggleAudio() {
+    audioEnabled = !audioEnabled;
+    const icon = document.getElementById('icon-sound');
+    if (audioEnabled) { icon.className = 'fa-solid fa-volume-high'; playSFX('bell'); }
+    else { icon.className = 'fa-solid fa-volume-xmark text-rose-400'; }
+}
+
+/* ====================== ROLES ====================== */
+function getActiveRoles() {
+    if (roleMode === 'custom' && appState.customRoles && appState.customRoles.length > 0) return appState.customRoles;
+    return ROLE_PRESETS[roleMode] || ROLE_PRESETS['high'];
+}
+function triggerSpinRoles() {
+    if (isSpinning) return;
+    const availableRoles = getActiveRoles();
+    if (!availableRoles || availableRoles.length === 0) { showClassroomToast("⚠️ Peran Kosong", "Atur peran dulu."); return; }
+    const btnSpin = document.getElementById('btn-spin');
+    isSpinning = true; btnSpin.disabled = true; btnSpin.classList.add('opacity-75','cursor-not-allowed');
+    const pg = document.getElementById('projector-group-grid'); pg.classList.add('shuffling');
+    let spins = 0; const maxSpins = 12;
+    const iv = setInterval(() => {
+        spins++; playSFX('spin');
+        appState.groups.forEach(group => {
+            const shuffled = [...availableRoles].sort(() => Math.random() - 0.5);
+            group.students.forEach((s, i) => { s.role = shuffled[i % shuffled.length]; });
+        });
+        renderProjectorView(); renderTeacherPanel();
+        if (spins >= maxSpins) {
+            clearInterval(iv); pg.classList.remove('shuffling');
+            isSpinning = false; btnSpin.disabled = false; btnSpin.classList.remove('opacity-75','cursor-not-allowed');
+            playSFX('cheer'); triggerConfetti();
+            showClassroomToast("🎉 Peran Dibagikan!", "Setiap siswa punya peran khusus!");
+            pushStateToCloud({ groups: appState.groups });
+        }
+    }, 120);
+}
+function triggerConfetti() {
+    if (typeof confetti === 'function') confetti({ particleCount: 80, spread: 70, origin: { y: 0.6 } });
+}
+
+/* ====================== WHEEL ====================== */
+function openWheelModal() {
+    const modal = document.getElementById('modal-wheel');
+    modal.classList.remove('hidden'); modal.classList.add('flex');
+    document.getElementById('wheel-result').classList.add('hidden');
+    drawWheel(0);
+}
+function closeWheelModal() { const m = document.getElementById('modal-wheel'); m.classList.add('hidden'); m.classList.remove('flex'); }
+
+function drawWheel(rotation = 0) {
+    const canvas = document.getElementById('wheel-canvas');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    const W = canvas.width, H = canvas.height;
+    const cx = W / 2, cy = H / 2, radius = Math.min(W, H) / 2 - 10;
+    ctx.clearRect(0, 0, W, H);
+    const groups = appState.groups;
+    if (groups.length === 0) return;
+    const segAngle = (2 * Math.PI) / groups.length;
+    for (let i = 0; i < groups.length; i++) {
+        const startAngle = i * segAngle + rotation;
+        const endAngle = startAngle + segAngle;
+        ctx.beginPath(); ctx.moveTo(cx, cy);
+        ctx.arc(cx, cy, radius, startAngle, endAngle); ctx.closePath();
+        ctx.fillStyle = groups[i].color || PION_COLORS[i % PION_COLORS.length];
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(255,255,255,0.4)'; ctx.lineWidth = 2; ctx.stroke();
+        ctx.save(); ctx.translate(cx, cy); ctx.rotate(startAngle + segAngle / 2);
+        ctx.textAlign = 'right'; ctx.fillStyle = '#fff';
+        ctx.font = 'bold 13px Inter, sans-serif';
+        ctx.shadowColor = 'rgba(0,0,0,0.7)'; ctx.shadowBlur = 4;
+        const label = groups[i].name.length > 16 ? groups[i].name.substring(0, 14) + '...' : groups[i].name;
+        ctx.fillText(label, radius - 12, 5);
+        ctx.restore();
+    }
+    ctx.beginPath(); ctx.arc(cx, cy, 30, 0, 2 * Math.PI);
+    ctx.fillStyle = '#0f172a'; ctx.fill();
+    ctx.strokeStyle = '#f59e0b'; ctx.lineWidth = 3; ctx.stroke();
+    ctx.fillStyle = '#f59e0b'; ctx.font = 'bold 22px Outfit, sans-serif';
+    ctx.textAlign = 'center'; ctx.fillText('🎯', cx, cy + 8);
+}
+
+function spinWheel() {
+    if (isWheelSpinning) return;
+    const available = appState.groups.filter(g => !g.presented);
+    if (available.length === 0) { showClassroomToast("🎉 Semua Sudah!", "Semua kelompok sudah presentasi."); return; }
+    isWheelSpinning = true;
+    document.getElementById('btn-spin-wheel').disabled = true;
+    document.getElementById('wheel-result').classList.add('hidden');
+    const totalRotation = 6 * 2 * Math.PI + Math.random() * 2 * Math.PI;
+    const duration = 3500;
+    const startTime = performance.now();
+    const startRotation = 0;
+    const spinAudio = setInterval(() => playSFX('spin'), 100);
+
+    function animate(now) {
+        const elapsed = now - startTime;
+        const t = Math.min(elapsed / duration, 1);
+        const easeOut = 1 - Math.pow(1 - t, 3);
+        const rot = startRotation + totalRotation * easeOut;
+        drawWheel(rot);
+        if (t < 1) requestAnimationFrame(animate);
+        else {
+            clearInterval(spinAudio); isWheelSpinning = false;
+            document.getElementById('btn-spin-wheel').disabled = false;
+            const totalGroups = appState.groups.length;
+            const segAngle = (2 * Math.PI) / totalGroups;
+            const normalizedRotation = (rot % (2 * Math.PI) + 2 * Math.PI) % (2 * Math.PI);
+            const pointerAngle = (Math.PI * 1.5 - normalizedRotation + 2 * Math.PI) % (2 * Math.PI);
+            const winnerIdx = Math.floor(pointerAngle / segAngle) % totalGroups;
+            let finalWinner = appState.groups[winnerIdx];
+            if (finalWinner.presented) {
+                for (let off = 1; off < totalGroups; off++) {
+                    const testIdx = (winnerIdx + off) % totalGroups;
+                    if (!appState.groups[testIdx].presented) { finalWinner = appState.groups[testIdx]; break; }
+                }
+            }
+            document.getElementById('wheel-winner').textContent = finalWinner.name;
+            document.getElementById('wheel-result').classList.remove('hidden');
+            playSFX('cheer'); triggerConfetti();
+            showClassroomToast("🎡 Hasil Roda!", finalWinner.name + " presentasi duluan!");
+
+            // AKTIFKAN DADU & SIMPAN KELOMPOK AKTIF
+            activateDiceForGroup(finalWinner.id);
+        }
+    }
+    requestAnimationFrame(animate);
+}
+
+/* ====================== AKTIFKAN DADU SETELAH RODA ====================== */
+function activateDiceForGroup(groupId) {
+    activeGroupId = groupId;
+    diceReady = true;
+    updateDicePanelUI();
+    updateActiveSessionInfo();
+}
+
+function updateDicePanelUI() {
+    const panel = document.getElementById('dice-side-panel');
+    const hint = document.getElementById('dice-side-hint');
+    if (!panel || !hint) return;
+    if (diceReady && activeGroupId) {
+        panel.classList.remove('disabled');
+        panel.classList.add('ready');
+        hint.textContent = '✨ Klik untuk spin dadu!';
+        hint.classList.remove('active');
+        // Add active class for green glow
+        hint.classList.add('active');
+    } else {
+        panel.classList.add('disabled');
+        panel.classList.remove('ready');
+        hint.textContent = '🔒 Terkunci — Klik Roda dulu';
+        hint.classList.remove('active');
+    }
+}
+
+function updateActiveSessionInfo() {
+    const info = document.getElementById('active-session-info');
+    const nameEl = document.getElementById('active-group-name');
+    const pionEl = document.getElementById('active-group-pion');
+    if (!info || !nameEl || !pionEl) return;
+    if (activeGroupId) {
+        const group = appState.groups.find(g => g.id === activeGroupId);
+        if (group) {
+            nameEl.textContent = group.name;
+            pionEl.textContent = group.pion;
+            info.classList.remove('hidden');
+        }
+    } else {
+        info.classList.add('hidden');
+    }
+}
+
+/* ====================== DADU BESAR (LANGSUNG SPIN) ====================== */
+function spinDiceBig() {
+    if (isDiceBigRolling || !diceReady || !activeGroupId) {
+        if (!diceReady) showClassroomToast("🔒 Dadu Terkunci", "Klik Roda dulu untuk memilih kelompok!");
+        return;
+    }
+    isDiceBigRolling = true;
+    const panel = document.getElementById('dice-side-panel');
+    const cube = document.getElementById('dice-cube-big');
+    panel.classList.add('spinning');
+    panel.classList.remove('ready');
+
+    const result = Math.floor(Math.random() * 6) + 1;
+    const rotations = {
+        1: { x: 0, y: 0 }, 2: { x: 0, y: -90 }, 3: { x: 0, y: 180 },
+        4: { x: 0, y: 90 }, 5: { x: -90, y: 0 }, 6: { x: 90, y: 0 }
+    };
+    const spins = 3;
+    const target = rotations[result];
+    const finalX = target.x + 360 * spins;
+    const finalY = target.y + 360 * spins;
+    cube.style.transform = `rotateX(${finalX}deg) rotateY(${finalY}deg)`;
+
+    const diceAudio = setInterval(() => playSFX('dice'), 100);
+    setTimeout(() => {
+        clearInterval(diceAudio);
+        panel.classList.remove('spinning');
+        isDiceBigRolling = false;
+        playSFX('chime');
+
+        // LANGSUNG gerakkan pion kelompok aktif (tanpa modal pilih kelompok)
+        const groupId = activeGroupId;
+        lastDiceResult = result;
+        setTimeout(() => movePion(groupId, result), 300);
+
+        // Reset state dadu (terkunci lagi sampai roda diputar)
+        diceReady = false;
+        activeGroupId = null;
+        updateDicePanelUI();
+        updateActiveSessionInfo();
+    }, 1300);
+}
+
+/* ====================== PION MOVE ====================== */
+function movePion(groupId, steps) {
+    const group = appState.groups.find(g => g.id === groupId);
+    if (!group) return;
+    let newPos = group.pion + steps;
+    if (newPos > 100) newPos = 100;
+    group.pion = newPos;
+    group.presented = true;
+
+    const event = appState.board.events.find(e => e.pos === newPos);
+    if (event) setTimeout(() => showEventModal(event, group), 400);
+
+    const ladder = appState.board.ladders.find(l => l.from === newPos);
+    if (ladder) {
+        setTimeout(() => {
+            playSFX('ladder');
+            group.pion = ladder.to;
+            showClassroomToast("🪜 NAIK TANGGA!", group.name + " naik dari " + ladder.from + " ke " + ladder.to + "!");
+            pushStateToCloud({ groups: appState.groups });
+            renderBoard(); renderPionStatus(); renderProjectorView();
+            const event2 = appState.board.events.find(e => e.pos === ladder.to);
+            if (event2) setTimeout(() => showEventModal(event2, group), 700);
+        }, 500);
+    }
+
+    const snake = appState.board.snakes.find(s => s.from === newPos);
+    if (snake) {
+        setTimeout(() => {
+            playSFX('snake');
+            group.pion = snake.to;
+            showClassroomToast("🐍 KENA ULAR!", group.name + " turun dari " + snake.from + " ke " + snake.to + "!");
+            pushStateToCloud({ groups: appState.groups });
+            renderBoard(); renderPionStatus(); renderProjectorView();
+            const event2 = appState.board.events.find(e => e.pos === snake.to);
+            if (event2) setTimeout(() => showEventModal(event2, group), 700);
+        }, 500);
+    }
+
+    playSFX('chime');
+    showClassroomToast("🎲 Dadu: " + steps, group.name + " maju ke petak " + newPos + "!");
+    pushStateToCloud({ groups: appState.groups });
+    renderBoard(); renderPionStatus(); renderProjectorView(); updatePresentedList();
+
+    if (group.pion === 100) {
+        setTimeout(() => {
+            playSFX('win');
+            if (typeof confetti === 'function') {
+                confetti({ particleCount: 200, spread: 100, origin: { y: 0.5 } });
+                setTimeout(() => confetti({ particleCount: 150, spread: 80, origin: { x: 0.2, y: 0.6 } }), 300);
+                setTimeout(() => confetti({ particleCount: 150, spread: 80, origin: { x: 0.8, y: 0.6 } }), 600);
+            }
+            showClassroomToast("🏆 JUARA!", group.name + " sampai di petak 100!");
+        }, 800);
+    }
+}
+
+/* ====================== EVENT MODAL ====================== */
+function showEventModal(event, group) {
+    document.getElementById('event-emoji').textContent = event.emoji;
+    document.getElementById('event-title').textContent = event.title;
+    document.getElementById('event-desc').textContent = event.desc + " (" + group.name + " di petak " + group.pion + ")";
+    const badge = document.getElementById('event-badge');
+    badge.textContent = event.jenis === 'challenge' ? '🎯 CHALLENGE' : '🎁 HADIAH';
+    badge.className = 'text-[11px] px-3 py-1 rounded-full font-bold uppercase tracking-wider inline-block mx-auto ' +
+        (event.jenis === 'challenge' ? 'bg-rose-500/20 text-rose-300 border border-rose-500/40' : 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40');
+    playSFX('gift');
+    const modal = document.getElementById('modal-event');
+    modal.classList.remove('hidden'); modal.classList.add('flex');
+}
+function closeEventModal() { const m = document.getElementById('modal-event'); m.classList.add('hidden'); m.classList.remove('flex'); }
+
+/* ====================== RENDER BOARD ====================== */
+function renderBoard() {
+    const containers = [document.getElementById('board-container'), document.getElementById('board-container-full')];
+    containers.forEach(container => {
+        if (!container) return;
+        container.innerHTML = '';
+        const wrapper = document.createElement('div');
+        wrapper.className = 'board-wrapper';
+        const grid = document.createElement('div');
+        grid.className = 'board-grid';
+        grid.id = 'board-grid-' + Math.random().toString(36).slice(2, 7);
+
+        for (let rowFromTop = 0; rowFromTop < 10; rowFromTop++) {
+            const isReversed = rowFromTop % 2 === 1;
+            for (let col = 0; col < 10; col++) {
+                const displayCol = isReversed ? (9 - col) : col;
+                const num = (9 - rowFromTop) * 10 + (displayCol + 1);
+                const cell = createBoardCell(num);
+                grid.appendChild(cell);
+            }
+        }
+        wrapper.appendChild(grid);
+        const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        svg.setAttribute('class', 'board-svg-overlay');
+        svg.setAttribute('viewBox', '0 0 100 100');
+        svg.setAttribute('preserveAspectRatio', 'none');
+        requestAnimationFrame(() => { drawLaddersAndSnakes(svg, grid); });
+        wrapper.appendChild(svg);
+        container.appendChild(wrapper);
+    });
+}
+
+function createBoardCell(num) {
+    const cell = document.createElement('div');
+    cell.className = 'board-cell c' + (num % 8);
+    cell.dataset.num = num;
+    const ladder = appState.board.ladders.find(l => l.from === num);
+    const snake = appState.board.snakes.find(s => s.from === num);
+    const event = appState.board.events.find(e => e.pos === num);
+    if (num === 100) cell.classList.add('finish');
+    if (ladder) cell.classList.add('marker-ladder');
+    if (snake) cell.classList.add('marker-snake');
+
+    const numEl = document.createElement('div');
+    numEl.className = 'cell-num';
+    numEl.textContent = num;
+    cell.appendChild(numEl);
+
+    const cellText = appState.board.cellTexts && appState.board.cellTexts[num];
+    if (cellText && num !== 100) {
+        const txt = document.createElement('div');
+        txt.className = 'cell-text';
+        if (cellText === '(Pertanyaan Opsional)') txt.classList.add('optional');
+        txt.textContent = cellText;
+        cell.appendChild(txt);
+    } else if (num === 100) {
+        const txt = document.createElement('div');
+        txt.className = 'cell-text';
+        txt.textContent = 'Finish';
+        txt.style.fontWeight = '900';
+        txt.style.fontSize = 'clamp(8px, 1vw, 12px)';
+        cell.appendChild(txt);
+    }
+
+    if (event && num !== 100 && event.emoji) {
+        const ev = document.createElement('div');
+        ev.className = 'event-emoji';
+        ev.textContent = event.emoji;
+        ev.title = event.title;
+        cell.appendChild(ev);
+    }
+
+    const pionsHere = appState.groups.filter(g => g.pion === num);
+    if (pionsHere.length > 0) {
+        const pc = document.createElement('div');
+        pc.className = 'pion-container';
+        pionsHere.forEach(g => {
+            const p = document.createElement('div');
+            p.className = 'pion';
+            p.style.background = g.color;
+            p.style.backgroundImage = `radial-gradient(ellipse at 35% 20%, rgba(255,255,255,0.6), transparent 45%), linear-gradient(180deg, rgba(255,255,255,0.15) 0%, transparent 40%, rgba(0,0,0,0.25) 100%)`;
+            p.title = g.name;
+            p.dataset.groupId = g.id;
+            pc.appendChild(p);
+        });
+        cell.appendChild(pc);
+    }
+    return cell;
+}
+
+function drawLaddersAndSnakes(svg, grid) {
+    while (svg.firstChild) svg.removeChild(svg.firstChild);
+    const gridRect = grid.getBoundingClientRect();
+    const cellMap = {};
+    grid.querySelectorAll('.board-cell').forEach(cell => {
+        const num = parseInt(cell.dataset.num);
+        const r = cell.getBoundingClientRect();
+        cellMap[num] = {
+            x: ((r.left - gridRect.left) / gridRect.width) * 100,
+            y: ((r.top - gridRect.top) / gridRect.height) * 100,
+            w: (r.width / gridRect.width) * 100,
+            h: (r.height / gridRect.height) * 100
+        };
+    });
+
+    appState.board.ladders.forEach((ladder) => {
+        const from = cellMap[ladder.from]; const to = cellMap[ladder.to];
+        if (!from || !to) return;
+        const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        g.setAttribute('class', 'ladder-svg');
+        const x1 = from.x + from.w * 0.35; const y1 = from.y + from.h * 0.5;
+        const x2 = to.x + to.w * 0.5; const y2 = to.y + to.h * 0.5;
+        const dx = x2 - x1; const dy = y2 - y1;
+        const len = Math.sqrt(dx * dx + dy * dy);
+        const px = -dy / len; const py = dx / len;
+        const railOffset = 1.6;
+        const r1a = { x: x1 + px * railOffset, y: y1 + py * railOffset };
+        const r1b = { x: x2 + px * railOffset, y: y2 + py * railOffset };
+        const r2a = { x: x1 - px * railOffset, y: y1 - py * railOffset };
+        const r2b = { x: x2 - px * railOffset, y: y2 - py * railOffset };
+
+        ['', 'i'].forEach((suffix, sIdx) => {
+            [1, 2].forEach(num => {
+                const a = num === 1 ? r1a : r2a; const b = num === 1 ? r1b : r2b;
+                const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                line.setAttribute('x1', a.x); line.setAttribute('y1', a.y);
+                line.setAttribute('x2', b.x); line.setAttribute('y2', b.y);
+                line.setAttribute('class', sIdx === 0 ? 'ladder-rail' : 'ladder-rail-inner');
+                g.appendChild(line);
+            });
+        });
+
+        const numRungs = Math.max(3, Math.floor(len / 3));
+        for (let i = 1; i < numRungs; i++) {
+            const t = i / numRungs;
+            const mx1 = r1a.x + (r1b.x - r1a.x) * t;
+            const my1 = r1a.y + (r1b.y - r1a.y) * t;
+            const mx2 = r2a.x + (r2b.x - r2a.x) * t;
+            const my2 = r2a.y + (r2b.y - r2a.y) * t;
+            const rung = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+            rung.setAttribute('x1', mx1); rung.setAttribute('y1', my1);
+            rung.setAttribute('x2', mx2); rung.setAttribute('y2', my2);
+            rung.setAttribute('class', 'ladder-rung');
+            g.appendChild(rung);
+        }
+        svg.appendChild(g);
+    });
+
+    const SNAKE_PALETTES = [
+        { body: '#f472b6', belly: '#fce7f3' }, { body: '#34d399', belly: '#d1fae5' },
+        { body: '#60a5fa', belly: '#dbeafe' }, { body: '#c084fc', belly: '#f3e8ff' },
+        { body: '#fb923c', belly: '#ffedd5' }, { body: '#f87171', belly: '#fee2e2' },
+        { body: '#facc15', belly: '#fef9c3' }, { body: '#22d3ee', belly: '#cffafe' }
+    ];
+
+    appState.board.snakes.forEach((snake, idx) => {
+        const from = cellMap[snake.from]; const to = cellMap[snake.to];
+        if (!from || !to) return;
+        const palette = SNAKE_PALETTES[idx % SNAKE_PALETTES.length];
+        const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        g.setAttribute('class', 'snake-svg snake-group');
+        const headX = from.x + from.w * 0.5; const headY = from.y + from.h * 0.5;
+        const tailX = to.x + to.w * 0.5; const tailY = to.y + to.h * 0.5;
+        const dx = tailX - headX; const dy = tailY - headY;
+        const len = Math.sqrt(dx * dx + dy * dy);
+        const px = -dy / len; const py = dx / len;
+        const segments = 8;
+        const amplitude = Math.min(7, len / 3.5);
+        const points = [];
+        for (let i = 0; i <= segments; i++) {
+            const t = i / segments;
+            const cx = headX + dx * t; const cy = headY + dy * t;
+            const offset = Math.sin(t * Math.PI * 2.5) * amplitude;
+            points.push({ x: cx + px * offset, y: cy + py * offset });
+        }
+        let pathD = `M ${points[0].x} ${points[0].y}`;
+        for (let i = 1; i < points.length; i++) {
+            const prev = points[i - 1]; const cur = points[i];
+            pathD += ` Q ${prev.x} ${prev.y} ${(prev.x + cur.x) / 2} ${(prev.y + cur.y) / 2}`;
+        }
+        pathD += ` T ${points[points.length - 1].x} ${points[points.length - 1].y}`;
+
+        const body = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        body.setAttribute('d', pathD); body.setAttribute('class', 'snake-body');
+        body.setAttribute('stroke', palette.body); g.appendChild(body);
+
+        const belly = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        belly.setAttribute('d', pathD); belly.setAttribute('class', 'snake-body-inner');
+        belly.setAttribute('stroke', palette.belly); g.appendChild(belly);
+
+        const headGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        headGroup.setAttribute('class', 'snake-head');
+        const headCircle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        headCircle.setAttribute('cx', headX); headCircle.setAttribute('cy', headY);
+        headCircle.setAttribute('r', 3.5); headCircle.setAttribute('fill', palette.body);
+        headCircle.setAttribute('stroke', '#1e293b'); headCircle.setAttribute('stroke-width', '0.6');
+        headGroup.appendChild(headCircle);
+
+        [[-1.2, -0.8], [1.2, -0.8]].forEach(([ox, oy]) => {
+            const eye = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+            eye.setAttribute('cx', headX + ox); eye.setAttribute('cy', headY + oy);
+            eye.setAttribute('r', 1.1); eye.setAttribute('class', 'snake-eye');
+            headGroup.appendChild(eye);
+            const pupil = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+            pupil.setAttribute('cx', headX + ox); pupil.setAttribute('cy', headY + oy);
+            pupil.setAttribute('r', 0.55); pupil.setAttribute('class', 'snake-pupil');
+            headGroup.appendChild(pupil);
+        });
+
+        const tongueY = headY + 3;
+        const tongue = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        tongue.setAttribute('d', `M ${headX} ${headY + 2.5} L ${headX} ${tongueY + 1} M ${headX} ${tongueY + 1} L ${headX - 1} ${tongueY + 2.5} M ${headX} ${tongueY + 1} L ${headX + 1} ${tongueY + 2.5}`);
+        tongue.setAttribute('class', 'snake-tongue');
+        headGroup.appendChild(tongue);
+        g.appendChild(headGroup);
+        svg.appendChild(g);
+    });
+}
+
+/* ====================== PION STATUS ====================== */
+function renderPionStatus() {
+    const container = document.getElementById('pion-status-list');
+    if (!container) return;
+    container.innerHTML = '';
+    [...appState.groups].sort((a, b) => b.pion - a.pion).forEach(g => {
+        const item = document.createElement('div');
+        item.className = 'bg-slate-900/80 border border-slate-800 rounded-lg p-2.5 flex items-center justify-between text-xs';
+        item.innerHTML = `
+            <div class="flex items-center gap-2 overflow-hidden">
+                <span class="w-3 h-3 rounded-full shrink-0" style="background:${g.color}; box-shadow: 0 0 6px ${g.color};"></span>
+                <span class="font-bold text-white truncate">${escapeHtml(g.name)}</span>
+                ${g.presented ? '<span class="text-[10px] text-emerald-400">✅</span>' : ''}
+            </div>
+            <span class="font-black text-amber-400 text-sm">${g.pion}</span>
+        `;
+        container.appendChild(item);
+    });
+}
+
+function updatePresentedList() {
+    const presented = appState.groups.filter(g => g.presented).map(g => g.name).join(', ') || '-';
+    const notPresented = appState.groups.filter(g => !g.presented).map(g => g.name).join(', ') || '-';
+    const pEl = document.getElementById('presented-list');
+    const nEl = document.getElementById('not-presented-list');
+    if (pEl) pEl.textContent = presented;
+    if (nEl) nEl.textContent = notPresented;
+}
+
+/* ====================== CELL EDITOR ====================== */
+function openCellEditorModal() {
+    const modal = document.getElementById('modal-cell-editor');
+    modal.classList.remove('hidden'); modal.classList.add('flex');
+    renderCellEditor();
+}
+function closeCellEditorModal() { const m = document.getElementById('modal-cell-editor'); m.classList.add('hidden'); m.classList.remove('flex'); }
+
+function renderCellEditor() {
+    const container = document.getElementById('cell-editor-grid');
+    if (!container) return;
+    container.innerHTML = '';
+    let filledCount = 0;
+    for (let i = 1; i <= 100; i++) {
+        const val = (appState.board.cellTexts && appState.board.cellTexts[i]) || '';
+        if (val) filledCount++;
+        const item = document.createElement('div');
+        item.className = 'cell-editor-item';
+        const isLadder = appState.board.ladders.find(l => l.from === i);
+        const isSnake = appState.board.snakes.find(s => s.from === i);
+        const isEvent = appState.board.events.find(e => e.pos === i);
+        let badge = '';
+        if (i === 100) badge = '🏆';
+        else if (isLadder) badge = '🪜';
+        else if (isSnake) badge = '🐍';
+        else if (isEvent) badge = isEvent.emoji;
+        item.innerHTML = `
+            <div class="num-label">${badge} Petak ${i}</div>
+            <input type="text" data-cell-num="${i}" value="${escapeHtml(val)}" placeholder="Teks...">
+        `;
+        container.appendChild(item);
+    }
+    document.getElementById('cell-filled-count').textContent = filledCount;
+}
+
+function saveCellTexts() {
+    const inputs = document.querySelectorAll('#cell-editor-grid input[data-cell-num]');
+    const newTexts = {};
+    inputs.forEach(inp => {
+        const num = parseInt(inp.dataset.cellNum);
+        const val = inp.value.trim();
+        if (val) newTexts[num] = val;
+    });
+    appState.board.cellTexts = newTexts;
+    pushStateToCloud({ board: appState.board });
+    renderBoard();
+    closeCellEditorModal();
+    showClassroomToast("✅ Teks Disimpan!", "Papan ular tangga diperbarui.");
+}
+
+function fillOptionalTexts() {
+    const obj = {};
+    obj[1] = 'Start';
+    obj[100] = 'Finish';
+    for (let i = 2; i <= 99; i++) obj[i] = '(Pertanyaan Opsional)';
+    appState.board.cellTexts = obj;
+    renderCellEditor();
+    showClassroomToast("✨ Teks Opsional Diisi!", "Semua petak diisi '(Pertanyaan Opsional)'.");
+}
+
+function clearAllTexts() {
+    if (!confirm("Kosongkan semua teks petak?")) return;
+    appState.board.cellTexts = {};
+    renderCellEditor();
+    showClassroomToast("🗑️ Semua Teks Dikosongkan", "Klik Simpan untuk menerapkan.");
+}
+
+/* ====================== BOARD CONFIG ====================== */
+function openBoardConfigModal() {
+    const modal = document.getElementById('modal-board-config');
+    modal.classList.remove('hidden'); modal.classList.add('flex');
+    renderBoardConfigList();
+    switchBoardTab('ladders');
+}
+function closeBoardConfigModal() { const m = document.getElementById('modal-board-config'); m.classList.add('hidden'); m.classList.remove('flex'); }
+
+function switchBoardTab(tab) {
+    ['ladders', 'snakes', 'events'].forEach(t => {
+        const el = document.getElementById('btab-' + t);
+        if (el) el.classList.toggle('hidden', t !== tab);
+        const btn = document.getElementById('btab-btn-' + t);
+        if (btn) btn.className = 'px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition whitespace-nowrap ' +
+            (tab === t ? (t === 'ladders' ? 'bg-emerald-600 text-white' : t === 'snakes' ? 'bg-rose-600 text-white' : 'bg-amber-600 text-white') : 'text-slate-400 hover:text-white');
+    });
+}
+
+function renderBoardConfigList() {
+    const lc = document.getElementById('ladders-list');
+    lc.innerHTML = '';
+    appState.board.ladders.forEach((l, i) => {
+        const row = document.createElement('div');
+        row.className = 'flex items-center gap-2 bg-slate-900 border border-slate-800 rounded-lg p-2';
+        row.innerHTML = `
+            <span class="text-emerald-400 font-bold text-xs w-6">🪜</span>
+            <label class="text-[11px] text-slate-400">Dari</label>
+            <input type="number" min="1" max="99" value="${l.from}" onchange="updateLadder(${i},'from',this.value)" class="w-16 bg-slate-950 border border-slate-700 rounded px-2 py-1 text-xs text-white">
+            <label class="text-[11px] text-slate-400">Ke</label>
+            <input type="number" min="2" max="100" value="${l.to}" onchange="updateLadder(${i},'to',this.value)" class="w-16 bg-slate-950 border border-slate-700 rounded px-2 py-1 text-xs text-white">
+            <button onclick="removeLadder(${i})" class="ml-auto text-rose-400 hover:text-rose-300 text-xs px-2"><i class="fa-solid fa-trash-can"></i></button>`;
+        lc.appendChild(row);
+    });
+    const sc = document.getElementById('snakes-list');
+    sc.innerHTML = '';
+    appState.board.snakes.forEach((s, i) => {
+        const row = document.createElement('div');
+        row.className = 'flex items-center gap-2 bg-slate-900 border border-slate-800 rounded-lg p-2';
+        row.innerHTML = `
+            <span class="text-rose-400 font-bold text-xs w-6">🐍</span>
+            <label class="text-[11px] text-slate-400">Dari</label>
+            <input type="number" min="2" max="100" value="${s.from}" onchange="updateSnake(${i},'from',this.value)" class="w-16 bg-slate-950 border border-slate-700 rounded px-2 py-1 text-xs text-white">
+            <label class="text-[11px] text-slate-400">Ke</label>
+            <input type="number" min="1" max="99" value="${s.to}" onchange="updateSnake(${i},'to',this.value)" class="w-16 bg-slate-950 border border-slate-700 rounded px-2 py-1 text-xs text-white">
+            <button onclick="removeSnake(${i})" class="ml-auto text-rose-400 hover:text-rose-300 text-xs px-2"><i class="fa-solid fa-trash-can"></i></button>`;
+        sc.appendChild(row);
+    });
+    const ec = document.getElementById('events-list');
+    ec.innerHTML = '';
+    appState.board.events.forEach((e, i) => {
+        const row = document.createElement('div');
+        row.className = 'bg-slate-900 border border-slate-800 rounded-lg p-2 space-y-1.5';
+        row.innerHTML = `
+            <div class="flex items-center gap-2">
+                <input type="text" value="${escapeHtml(e.emoji)}" onchange="updateEvent(${i},'emoji',this.value)" class="w-12 bg-slate-950 border border-slate-700 rounded px-2 py-1 text-xs text-center">
+                <label class="text-[11px] text-slate-400">Petak</label>
+                <input type="number" min="1" max="100" value="${e.pos}" onchange="updateEvent(${i},'pos',this.value)" class="w-16 bg-slate-950 border border-slate-700 rounded px-2 py-1 text-xs text-white">
+                <select onchange="updateEvent(${i},'jenis',this.value)" class="bg-slate-950 border border-slate-700 rounded px-2 py-1 text-xs text-white">
+                    <option value="hadiah" ${e.jenis === 'hadiah' ? 'selected' : ''}>🎁 Hadiah</option>
+                    <option value="challenge" ${e.jenis === 'challenge' ? 'selected' : ''}>🎯 Challenge</option>
+                </select>
+                <button onclick="removeEvent(${i})" class="ml-auto text-rose-400 hover:text-rose-300 text-xs px-2"><i class="fa-solid fa-trash-can"></i></button>
+            </div>
+            <input type="text" value="${escapeHtml(e.title)}" onchange="updateEvent(${i},'title',this.value)" placeholder="Judul event" class="w-full bg-slate-950 border border-slate-700 rounded px-2 py-1 text-xs text-white">
+            <input type="text" value="${escapeHtml(e.desc)}" onchange="updateEvent(${i},'desc',this.value)" placeholder="Deskripsi" class="w-full bg-slate-950 border border-slate-700 rounded px-2 py-1 text-xs text-slate-300">`;
+        ec.appendChild(row);
+    });
+}
+
+function updateLadder(i, key, val) { appState.board.ladders[i][key] = parseInt(val) || 1; }
+function updateSnake(i, key, val) { appState.board.snakes[i][key] = parseInt(val) || 1; }
+function updateEvent(i, key, val) { appState.board.events[i][key] = key === 'pos' ? (parseInt(val) || 1) : val; }
+function addLadder() { appState.board.ladders.push({ from: 1, to: 100 }); renderBoardConfigList(); }
+function addSnake() { appState.board.snakes.push({ from: 50, to: 10 }); renderBoardConfigList(); }
+function addEvent() { appState.board.events.push({ pos: 50, emoji: '🎁', title: 'Event Baru', desc: 'Deskripsi', jenis: 'hadiah' }); renderBoardConfigList(); }
+function removeLadder(i) { appState.board.ladders.splice(i, 1); renderBoardConfigList(); }
+function removeSnake(i) { appState.board.snakes.splice(i, 1); renderBoardConfigList(); }
+function removeEvent(i) { appState.board.events.splice(i, 1); renderBoardConfigList(); }
+
+function resetBoardConfig() {
+    if (!confirm("Reset papan ke pengaturan default?")) return;
+    appState.board = {
+        ladders: JSON.parse(JSON.stringify(DEFAULT_LADDERS)),
+        snakes: JSON.parse(JSON.stringify(DEFAULT_SNAKES)),
+        events: JSON.parse(JSON.stringify(DEFAULT_EVENTS)),
+        cellTexts: JSON.parse(JSON.stringify(DEFAULT_CELL_TEXTS))
+    };
+    renderBoardConfigList();
+    showClassroomToast("🔄 Papan Direset", "Konfigurasi kembali ke default.");
+}
+function saveBoardConfig() {
+    pushStateToCloud({ board: appState.board });
+    renderBoard();
+    closeBoardConfigModal();
+    showClassroomToast("✅ Tersimpan!", "Konfigurasi papan disimpan.");
+}
+
+function openBoardModal() {
+    const modal = document.getElementById('modal-board');
+    modal.classList.remove('hidden'); modal.classList.add('flex');
+    setTimeout(() => renderBoard(), 50);
+}
+function closeBoardModal() { const m = document.getElementById('modal-board'); m.classList.add('hidden'); m.classList.remove('flex'); }
+
+/* ====================== TIMER ====================== */
+function applyCustomTimer() {
+    const inputMins = document.getElementById('input-timer-mins');
+    const mins = Math.max(1, Math.min(120, parseInt(inputMins.value) || 15));
+    inputMins.value = mins; timerSeconds = mins * 60;
+    updateTimerDisplay(); playSFX('bell');
+    pushStateToCloud({ timerSeconds: timerSeconds, isTimerRunning: false });
+    showClassroomToast("⏱️ Timer Diperbarui", `Durasi: ${mins} menit.`);
+}
+function updateMission() {
+    const input = document.getElementById('input-mission');
+    if (input.value.trim() !== '') {
+        appState.mission = input.value.trim();
+        document.getElementById('display-mission-text').textContent = appState.mission;
+        pushStateToCloud({ mission: appState.mission });
+        playSFX('bell');
+    }
+}
+function toggleTimer() {
+    if (isTimerRunning) { stopTimerLocal(); pushStateToCloud({ isTimerRunning: false, timerSeconds: timerSeconds }); }
+    else { startTimerLocal(); pushStateToCloud({ isTimerRunning: true, timerSeconds: timerSeconds }); }
+}
+function startTimerLocal() {
+    if (isTimerRunning) return;
+    const btnToggle = document.getElementById('btn-timer-toggle');
+    const badge = document.getElementById('timer-status-badge');
+    getAudioContext(); isTimerRunning = true;
+    if (btnToggle) { btnToggle.innerHTML = '<i class="fa-solid fa-pause mr-1"></i> Pause'; btnToggle.className = 'flex-1 py-1.5 bg-amber-600 hover:bg-amber-500 text-white rounded-lg text-xs font-bold transition'; }
+    if (badge) { badge.textContent = 'Running'; badge.className = 'text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300'; }
+    timerInterval = setInterval(() => {
+        if (timerSeconds > 0) {
+            timerSeconds--; updateTimerDisplay();
+            if (isHost && timerSeconds % 5 === 0) pushStateToCloud({ timerSeconds: timerSeconds });
+        } else {
+            clearInterval(timerInterval); isTimerRunning = false;
+            playSFX('bell'); showClassroomToast("⏱️ Waktu Habis!", "Siap presentasi!");
+            if (btnToggle) { btnToggle.innerHTML = '<i class="fa-solid fa-play mr-1"></i> Start'; btnToggle.className = 'flex-1 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-bold transition'; }
+            if (badge) { badge.textContent = 'Done'; badge.className = 'text-[10px] px-1.5 py-0.5 rounded bg-rose-500/20 text-rose-300'; }
+            if (isHost) pushStateToCloud({ isTimerRunning: false, timerSeconds: 0 });
+        }
+    }, 1000);
+}
+function stopTimerLocal() {
+    clearInterval(timerInterval); isTimerRunning = false;
+    const btnToggle = document.getElementById('btn-timer-toggle');
+    const badge = document.getElementById('timer-status-badge');
+    if (btnToggle) { btnToggle.innerHTML = '<i class="fa-solid fa-play mr-1"></i> Start'; btnToggle.className = 'flex-1 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-bold transition'; }
+    if (badge) { badge.textContent = 'Paused'; badge.className = 'text-[10px] px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300'; }
+}
+function resetTimer() {
+    clearInterval(timerInterval); isTimerRunning = false;
+    const mins = Math.max(1, Math.min(120, parseInt(document.getElementById('input-timer-mins').value) || 15));
+    timerSeconds = mins * 60; updateTimerDisplay();
+    const btn = document.getElementById('btn-timer-toggle');
+    if (btn) { btn.innerHTML = '<i class="fa-solid fa-play mr-1"></i> Start'; btn.className = 'flex-1 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-bold transition'; }
+    const badge = document.getElementById('timer-status-badge');
+    if (badge) { badge.textContent = 'Ready'; badge.className = 'text-[10px] px-1.5 py-0.5 rounded bg-slate-800 text-slate-400'; }
+    pushStateToCloud({ isTimerRunning: false, timerSeconds: timerSeconds });
+}
+function updateTimerDisplay() {
+    const mins = Math.floor(timerSeconds / 60);
+    const secs = timerSeconds % 60;
+    const el = document.getElementById('display-timer');
+    if (el) el.textContent = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+}
+
+/* ====================== RENDERERS ====================== */
+function renderTeacherPanel() {
+    const container = document.getElementById('teacher-group-list');
+    if (!container) return;
+    container.innerHTML = '';
+    appState.groups.forEach((group) => {
+        const card = document.createElement('div');
+        card.className = 'glass-card-light rounded-xl p-3 flex items-center justify-between border border-slate-700/60 hover:border-slate-600 transition';
+        card.innerHTML = `
+            <div>
+                <h4 class="font-bold text-xs text-white flex items-center gap-1.5">
+                    <span class="w-2.5 h-2.5 rounded-full" style="background:${group.color};"></span>
+                    ${escapeHtml(group.name)}
+                </h4>
+                <div class="text-[11px] text-amber-400 font-semibold mt-0.5 flex items-center gap-1">
+                    <i class="fa-solid fa-star text-xs"></i> ${group.stars} Bintang
+                    <span class="text-[10px] text-slate-400 ml-1">• Petak ${group.pion}</span>
+                </div>
+            </div>
+            <div class="flex items-center gap-1">
+                <button onclick="modifyStars('${group.id}', 10)" class="px-2 py-1 bg-amber-500 hover:bg-amber-400 active:scale-95 text-slate-950 font-black rounded-lg text-xs shadow-md transition">+10 ⭐</button>
+                <button onclick="modifyStars('${group.id}', 5)" class="px-2 py-1 bg-amber-600/80 hover:bg-amber-500 active:scale-95 text-white font-bold rounded-lg text-xs transition">+5 ⭐</button>
+                <button onclick="modifyStars('${group.id}', -5)" class="px-2 py-1 bg-rose-600/80 hover:bg-rose-500 active:scale-95 text-white font-bold rounded-lg text-xs transition">-5 ⚠️</button>
+            </div>`;
+        container.appendChild(card);
+    });
+    updatePresentedList();
+}
+function modifyStars(groupId, count) {
+    const group = appState.groups.find(g => g.id === groupId);
+    if (!group) return;
+    group.stars = Math.max(0, group.stars + count);
+    if (count > 0) {
+        playSFX('star'); if (count >= 10) triggerConfetti();
+        showClassroomToast(`⭐ ${group.name} +${count} Bintang!`, `Apresiasi kerjasama hebat!`);
+    } else if (count < 0) {
+        playSFX('penalty');
+        showClassroomToast(`⚠️ ${group.name} ${count} Bintang`, `Pengurangan poin. Ayo tingkatkan!`);
+    }
+    renderTeacherPanel(); renderProjectorView();
+    pushStateToCloud({ groups: appState.groups });
+}
+function renderProjectorView() {
+    const grid = document.getElementById('projector-group-grid');
+    if (!grid) return;
+    grid.innerHTML = '';
+    appState.groups.forEach((group) => {
+        const groupCard = document.createElement('div');
+        groupCard.className = 'glass-card-light rounded-xl p-4 flex flex-col gap-3 border border-slate-700/60 shadow-lg bg-slate-900/60';
+        let studentsHTML = '';
+        group.students.forEach((student) => {
+            if (student.role) {
+                studentsHTML += `
+                    <div class="bg-slate-950/80 border border-slate-800 rounded-lg p-2.5 flex items-center justify-between gap-2">
+                        <div class="flex items-center gap-2 overflow-hidden">
+                            <span class="w-7 h-7 rounded-lg flex items-center justify-center text-xs shrink-0 ${student.role.color || 'bg-brand-500/20 text-brand-300'}">
+                                <i class="fa-solid ${student.role.icon || 'fa-user'}"></i>
+                            </span>
+                            <div class="truncate">
+                                <div class="font-bold text-xs text-white truncate">${escapeHtml(student.name)}</div>
+                                <div class="text-[10px] text-indigo-300 font-semibold truncate">${escapeHtml(student.role.title)}</div>
+                            </div>
+                        </div>
+                    </div>`;
+            } else {
+                studentsHTML += `
+                    <div class="bg-slate-950/40 border border-slate-800/80 rounded-lg p-2.5 flex items-center justify-between">
+                        <span class="font-semibold text-xs text-slate-300">${escapeHtml(student.name)}</span>
+                        <span class="text-[10px] px-2 py-0.5 rounded bg-slate-800/60 text-slate-500 italic">Belum Diacak</span>
+                    </div>`;
+            }
+        });
+        groupCard.innerHTML = `
+            <div class="flex items-center justify-between pb-2 border-b border-slate-800">
+                <h3 class="font-bold text-sm text-white flex items-center gap-2">
+                    <span class="w-3 h-3 rounded-full" style="background:${group.color};box-shadow:0 0 8px ${group.color};"></span>
+                    ${escapeHtml(group.name)}
+                    ${group.presented ? '<span class="text-[10px] text-emerald-400">✅</span>' : ''}
+                </h3>
+                <div class="flex items-center gap-1.5">
+                    <span class="font-extrabold text-[10px] text-indigo-400 bg-indigo-500/10 border border-indigo-500/30 px-2 py-0.5 rounded-full">🎲 ${group.pion}</span>
+                    <span class="font-extrabold text-xs text-amber-400 bg-amber-500/10 border border-amber-500/30 px-2.5 py-1 rounded-full flex items-center gap-1">
+                        <i class="fa-solid fa-star"></i> ${group.stars}
+                    </span>
+                </div>
+            </div>
+            <div class="space-y-2 flex-1">${studentsHTML}</div>`;
+        grid.appendChild(groupCard);
+    });
+}
+function showClassroomToast(title, desc) {
+    const toast = document.getElementById('classroom-toast');
+    document.getElementById('toast-title').textContent = title;
+    document.getElementById('toast-desc').textContent = desc;
+    toast.classList.remove('hidden');
+    clearTimeout(toast._timer);
+    toast._timer = setTimeout(() => toast.classList.add('hidden'), 3500);
+}
+
+/* ====================== VIEW SWITCHING ====================== */
+function switchView(mode) {
+    const viewport = document.getElementById('app-viewport');
+    const panelHP = document.getElementById('panel-hp');
+    const panelProj = document.getElementById('panel-projector');
+    const panelGames = document.getElementById('panel-games');
+    const btnSplit = document.getElementById('btn-view-split');
+    const btnHP = document.getElementById('btn-view-hp');
+    const btnProj = document.getElementById('btn-view-projector');
+    const btnGames = document.getElementById('btn-view-games');
+    const inactiveCls = 'px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-all text-slate-400 hover:text-white';
+    const activeCls = 'px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-all bg-brand-600 text-white shadow';
+    [btnSplit, btnHP, btnProj, btnGames].forEach(btn => { if (btn) btn.className = inactiveCls; });
+
+    panelHP.classList.add('hidden'); panelProj.classList.add('hidden'); panelGames.classList.add('hidden');
+
+    if (mode === 'split') {
+        viewport.className = 'flex-1 p-3 md:p-6 max-w-7xl w-full mx-auto grid grid-cols-1 md:grid-cols-12 gap-6';
+        panelHP.className = 'md:col-span-5 glass-card rounded-2xl p-4 md:p-5 flex flex-col gap-5 border border-slate-700/60 shadow-2xl';
+        panelProj.className = 'md:col-span-7 glass-card rounded-2xl p-4 md:p-6 flex flex-col gap-6 border border-slate-700/60 shadow-2xl relative overflow-hidden bg-slate-950/80';
+        panelHP.classList.remove('hidden'); panelProj.classList.remove('hidden');
+        btnSplit.className = activeCls;
+    } else if (mode === 'hp') {
+        viewport.className = 'flex-1 p-3 md:p-6 max-w-xl w-full mx-auto grid grid-cols-1 gap-6';
+        panelHP.className = 'glass-card rounded-2xl p-4 md:p-5 flex flex-col gap-5 border border-slate-700/60 shadow-2xl';
+        panelHP.classList.remove('hidden'); btnHP.className = activeCls;
+    } else if (mode === 'projector') {
+        viewport.className = 'flex-1 p-3 md:p-6 max-w-6xl w-full mx-auto grid grid-cols-1 gap-6';
+        panelProj.className = 'glass-card rounded-2xl p-4 md:p-6 flex flex-col gap-6 border border-slate-700/60 shadow-2xl relative overflow-hidden bg-slate-950/80';
+        panelProj.classList.remove('hidden'); btnProj.className = activeCls;
+    } else if (mode === 'games') {
+        viewport.className = 'flex-1 p-3 md:p-6 max-w-7xl w-full mx-auto grid grid-cols-1 gap-6';
+        panelGames.className = 'md:col-span-12 glass-card rounded-2xl p-4 md:p-6 flex flex-col gap-5 border border-amber-500/40 shadow-2xl relative overflow-hidden bg-slate-950/80';
+        panelGames.classList.remove('hidden');
+        btnGames.className = activeCls;
+        setTimeout(() => { renderBoard(); renderPionStatus(); updateDicePanelUI(); updateActiveSessionInfo(); }, 50);
+    }
+}
+
+/* ====================== SUMMARY ====================== */
+function openSummaryModal() {
+    const leaderboard = document.getElementById('summary-leaderboard');
+    leaderboard.innerHTML = '';
+    [...appState.groups].sort((a, b) => b.stars - a.stars).forEach((group, idx) => {
+        const item = document.createElement('div');
+        item.className = 'glass-card-light rounded-xl p-3 flex items-center justify-between border border-slate-700/60';
+        let badgeColor = 'bg-slate-800 text-slate-300';
+        if (idx === 0) badgeColor = 'bg-amber-500/20 text-amber-300 border border-amber-500/40';
+        if (idx === 1) badgeColor = 'bg-slate-300/20 text-slate-200 border border-slate-400/40';
+        if (idx === 2) badgeColor = 'bg-orange-500/20 text-orange-300 border border-orange-500/40';
+        item.innerHTML = `
+            <div class="flex items-center gap-2.5">
+                <span class="w-6 h-6 rounded-full flex items-center justify-center font-bold text-xs ${badgeColor}">#${idx + 1}</span>
+                <span class="font-bold text-xs text-white">${escapeHtml(group.name)}</span>
+            </div>
+            <div class="text-right">
+                <div class="font-extrabold text-amber-400 text-xs flex items-center gap-1 justify-end"><i class="fa-solid fa-star"></i> ${group.stars} Bintang</div>
+                <div class="text-[10px] text-indigo-300">Petak ${group.pion}</div>
+            </div>`;
+        leaderboard.appendChild(item);
+    });
+    const modal = document.getElementById('modal-summary');
+    modal.classList.remove('hidden'); modal.classList.add('flex');
+}
+function closeSummaryModal() { const m = document.getElementById('modal-summary'); m.classList.add('hidden'); m.classList.remove('flex'); }
+function copySummaryText() {
+    let txt = `🏆 REKAP BINTANG & PAPAN ULAR TANGGA\nMisi: ${appState.mission}\n\n`;
+    [...appState.groups].sort((a, b) => b.stars - a.stars).forEach(g => {
+        txt += `• ${g.name}: ${g.stars} Bintang | Petak ${g.pion} ${g.presented ? '✅' : '⏳'}\n`;
+    });
+    fallbackCopyText(txt, "📋 Ringkasan Disalin!", "Teks rekapitulasi berhasil disalin.");
+}
+function fallbackCopyText(text, title, desc) {
+    if (navigator.clipboard?.writeText) {
+        navigator.clipboard.writeText(text).then(() => showClassroomToast(title, desc)).catch(() => doFallbackCopy(text, title, desc));
+    } else doFallbackCopy(text, title, desc);
+}
+function doFallbackCopy(text, title, desc) {
+    const ta = document.createElement('textarea');
+    ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    try { document.execCommand('copy'); showClassroomToast(title, desc); } catch(e) { showClassroomToast("⚠️ Gagal Menyalin", "Salin manual."); }
+    document.body.removeChild(ta);
+}
+
+/* ====================== SERTIFIKAT ====================== */
+let certCurrentType = 'champion';
+let certCurrentGroupId = null;
+let certCurrentRoleId = null;
+
+function openCertificateModal() {
+    const modal = document.getElementById('modal-certificate');
+    modal.classList.remove('hidden'); modal.classList.add('flex');
+    renderCertChampionList();
+    renderCertRoleSelect();
+    switchCertTab('champion');
+}
+function closeCertificateModal() { const m = document.getElementById('modal-certificate'); m.classList.add('hidden'); m.classList.remove('flex'); }
+
+function switchCertTab(tab) {
+    certCurrentType = tab;
+    const tabChamp = document.getElementById('cert-tab-champion');
+    const tabRole = document.getElementById('cert-tab-bestrole');
+    const pickChamp = document.getElementById('cert-picker-champion');
+    const pickRole = document.getElementById('cert-picker-bestrole');
+    if (tab === 'champion') {
+        tabChamp.className = 'px-3 py-1.5 rounded-lg bg-amber-600 text-white flex items-center gap-1.5 transition whitespace-nowrap';
+        tabRole.className = 'px-3 py-1.5 rounded-lg text-slate-400 hover:text-white flex items-center gap-1.5 transition whitespace-nowrap';
+        pickChamp.classList.remove('hidden'); pickRole.classList.add('hidden');
+        if (!certCurrentGroupId) renderCertChampionList();
+        else renderCertificatePreview();
+    } else {
+        tabRole.className = 'px-3 py-1.5 rounded-lg bg-purple-600 text-white flex items-center gap-1.5 transition whitespace-nowrap';
+        tabChamp.className = 'px-3 py-1.5 rounded-lg text-slate-400 hover:text-white flex items-center gap-1.5 transition whitespace-nowrap';
+        pickChamp.classList.add('hidden'); pickRole.classList.remove('hidden');
+        if (!certCurrentRoleId) renderCertRoleSelect();
+        else renderCertificatePreview();
+    }
+}
+
+function renderCertChampionList() {
+    const container = document.getElementById('cert-champion-list');
+    if (!container) return;
+    container.innerHTML = '';
+    const sorted = [...appState.groups].sort((a, b) => b.stars - a.stars);
+    const medals = ['🥇', '🥈', '🥉'];
+    sorted.forEach((g, idx) => {
+        const btn = document.createElement('button');
+        btn.className = 'w-full text-left bg-slate-900 hover:bg-slate-800 border border-slate-700 rounded-xl p-3 transition flex items-center justify-between gap-2';
+        if (certCurrentGroupId === g.id) btn.classList.add('ring-2', 'ring-amber-500');
+        btn.onclick = () => {
+            certCurrentGroupId = g.id;
+            renderCertChampionList();
+            renderCertificatePreview();
+        };
+        const medal = idx < 3 ? medals[idx] : '🎖️';
+        btn.innerHTML = `
+            <div class="flex items-center gap-2 min-w-0">
+                <span class="text-xl">${medal}</span>
+                <div class="min-w-0">
+                    <div class="font-bold text-xs text-white truncate">${escapeHtml(g.name)}</div>
+                    <div class="text-[10px] text-slate-400">${g.students.map(s => s.name).join(', ')}</div>
+                </div>
+            </div>
+            <div class="text-right shrink-0">
+                <div class="font-extrabold text-xs text-amber-400">${g.stars} ⭐</div>
+                <div class="text-[9px] text-slate-500">Petak ${g.pion}</div>
+            </div>`;
+        container.appendChild(btn);
+    });
+}
+
+function renderCertRoleSelect() {
+    const sel = document.getElementById('cert-role-select');
+    if (!sel) return;
+    sel.innerHTML = '';
+    const roles = getActiveRoles();
+    roles.forEach(r => {
+        const opt = document.createElement('option');
+        opt.value = r.id;
+        opt.textContent = `${r.title}`;
+        sel.appendChild(opt);
+    });
+    sel.onchange = (e) => {
+        certCurrentRoleId = e.target.value;
+        renderCertificatePreview();
+    };
+    if (!certCurrentRoleId && roles.length > 0) certCurrentRoleId = roles[0].id;
+}
+
+function renderCertificatePreview() {
+    const container = document.getElementById('cert-preview-container');
+    if (!container) return;
+    const now = new Date();
+    const tanggalStr = now.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+    let certClass = 'cert-gold';
+    let medal = '🥇';
+    let rankTitle = 'JUARA 1';
+    let groupName = '';
+    let members = [];
+    let desc = '';
+
+    if (certCurrentType === 'champion') {
+        const sorted = [...appState.groups].sort((a, b) => b.stars - a.stars);
+        const group = sorted.find(g => g.id === certCurrentGroupId) || sorted[0];
+        if (!group) { container.innerHTML = '<p class="text-slate-400 text-xs text-center py-8">Belum ada kelompok</p>'; return; }
+        const rankIdx = sorted.indexOf(group);
+        groupName = group.name;
+        members = group.students.map(s => s.name);
+        if (rankIdx === 0) { certClass = 'cert-gold'; medal = '🥇'; rankTitle = 'JUARA 1'; }
+        else if (rankIdx === 1) { certClass = 'cert-silver'; medal = '🥈'; rankTitle = 'JUARA 2'; }
+        else if (rankIdx === 2) { certClass = 'cert-bronze'; medal = '🥉'; rankTitle = 'JUARA 3'; }
+        else { certClass = 'cert-special'; medal = '🎖️'; rankTitle = `PERINGKAT ${rankIdx + 1}`; }
+        desc = `Telah berhasil meraih <strong>${rankTitle}</strong> dalam kegiatan pembelajaran kelompok dengan total <strong>${group.stars} bintang</strong>.`;
+    } else {
+        const role = getActiveRoles().find(r => r.id === certCurrentRoleId);
+        if (!role) { container.innerHTML = '<p class="text-slate-400 text-xs text-center py-8">Belum ada peran</p>'; return; }
+        certClass = 'cert-special'; medal = '🌟';
+        rankTitle = `BEST ${role.title.toUpperCase()}`;
+        let found = null;
+        for (const g of appState.groups) {
+            const student = g.students.find(s => s.role && s.role.id === role.id);
+            if (student) { found = { student, group: g }; break; }
+        }
+        if (found) {
+            groupName = found.student.name;
+            members = [`${role.title} • ${found.group.name}`];
+            desc = `Diberikan kepada <strong>${found.student.name}</strong> dari <strong>${found.group.name}</strong> atas dedikasi dan performa luar biasa dalam menjalankan peran sebagai <strong>${role.title}</strong>.`;
+        } else {
+            groupName = '(Belum ada siswa dengan peran ini)';
+            members = [];
+            desc = `Belum ada siswa yang ditugaskan dengan peran <strong>${role.title}</strong>. Silakan acak peran terlebih dahulu.`;
+        }
+    }
+
+    container.innerHTML = `
+        <div class="certificate-preview ${certClass}" id="certificate-canvas">
+            <div class="cert-star s1">★</div><div class="cert-star s2">★</div>
+            <div class="cert-star s3">★</div><div class="cert-star s4">★</div>
+            <div class="cert-subtitle">SERTIFIKAT PENGHARGAAN</div>
+            <div class="cert-title">${rankTitle}</div>
+            <div class="cert-medal">${medal}</div>
+            <div class="cert-desc" style="margin-bottom:2px;">Diberikan dengan bangga kepada:</div>
+            <div class="cert-group-name">${escapeHtml(groupName)}</div>
+            <div class="cert-members">${members.map(m => `<span class="cert-member">${escapeHtml(m)}</span>`).join('')}</div>
+            <div class="cert-desc">${desc}</div>
+            <div class="cert-footer">
+                <div class="cert-signature"><div class="cert-date">${tanggalStr}</div><div class="cert-signature-line">Guru Kelas</div></div>
+                <div class="cert-signature"><div class="cert-date">KelasAktif</div><div class="cert-signature-line">Inovasi PPG</div></div>
+            </div>
+        </div>`;
+    playSFX('cert');
+}
+
+async function downloadCertificate() {
+    const el = document.getElementById('certificate-canvas');
+    if (!el) { showClassroomToast("⚠️ Sertifikat Belum Siap", "Pilih kelompok/peran dulu."); return; }
+    const btn = document.getElementById('btn-download-cert');
+    const oldText = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Memproses...';
+    try {
+        const canvas = await html2canvas(el, { scale: 3, backgroundColor: null, useCORS: true, logging: false });
+        const link = document.createElement('a');
+        link.download = `Sertifikat_${certCurrentType}_${Date.now()}.png`;
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+        playSFX('win');
+        showClassroomToast("✅ Sertifikat Terunduh!", "File PNG berhasil disimpan.");
+    } catch(err) { console.error(err); showClassroomToast("⚠️ Gagal Download", "Coba lagi."); }
+    finally { btn.disabled = false; btn.innerHTML = oldText; }
+}
+
+/* ====================== PROFILE ====================== */
+function openProfileModal() { const m = document.getElementById('modal-profile'); m.classList.remove('hidden'); m.classList.add('flex'); }
+function closeProfileModal() { const m = document.getElementById('modal-profile'); m.classList.add('hidden'); m.classList.remove('flex'); }
+
+/* ====================== CONFIG MODAL ====================== */
+function switchConfigTab(tabId) {
+    ['tab-roster', 'tab-roles', 'tab-manual'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.classList.toggle('hidden', id !== tabId);
+    });
+    ['roster', 'roles', 'manual'].forEach(id => {
+        const btn = document.getElementById(`tab-btn-${id}`);
+        if (btn) btn.className = 'px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition whitespace-nowrap ' + (tabId === `tab-${id}` ? 'bg-brand-600 text-white' : 'text-slate-400 hover:text-white');
+    });
+}
+function openConfigModal() {
+    document.getElementById('input-roster-text').value = appState.allStudentsText || '';
+    document.getElementById('input-num-groups').value = appState.groups.length || 4;
+    selectRoleMode(roleMode); renderConfigEditor();
+    const modal = document.getElementById('modal-config');
+    modal.classList.remove('hidden'); modal.classList.add('flex');
+}
+function closeConfigModal() { const m = document.getElementById('modal-config'); m.classList.add('hidden'); m.classList.remove('flex'); }
+function selectRoleMode(mode) {
+    roleMode = mode;
+    const btnLow = document.getElementById('preset-btn-low');
+    const btnHigh = document.getElementById('preset-btn-high');
+    const btnCustom = document.getElementById('preset-btn-custom');
+    const label = document.getElementById('label-active-class');
+    const baseCls = 'p-2.5 rounded-xl border text-left transition flex flex-col gap-1 bg-slate-800/80 border-slate-700 hover:border-brand-500';
+    [btnLow, btnHigh, btnCustom].forEach(b => { if (b) b.className = baseCls; });
+    if (mode === 'low') { if (btnLow) btnLow.className = 'p-2.5 rounded-xl border text-left transition flex flex-col gap-1 bg-brand-600/20 border-brand-500 shadow'; if (label) label.textContent = 'Kelas 1-3 SD (Rendah)'; }
+    else if (mode === 'high') { if (btnHigh) btnHigh.className = 'p-2.5 rounded-xl border text-left transition flex flex-col gap-1 bg-brand-600/20 border-brand-500 shadow'; if (label) label.textContent = 'Kelas 4-6 SD (Tinggi)'; }
+    else { if (btnCustom) btnCustom.className = 'p-2.5 rounded-xl border text-left transition flex flex-col gap-1 bg-amber-500/20 border-amber-500 shadow'; if (label) label.textContent = 'Peran Kustom Guru'; }
+    renderActiveRolesList();
+}
+function renderActiveRolesList() {
+    const container = document.getElementById('active-roles-list');
+    if (!container) return;
+    container.innerHTML = '';
+    getActiveRoles().forEach((r, idx) => {
+        const card = document.createElement('div');
+        card.className = 'bg-slate-950 border border-slate-800 rounded-lg p-2 flex items-center justify-between text-xs';
+        card.innerHTML = `
+            <div class="flex items-center gap-2">
+                <span class="w-6 h-6 rounded flex items-center justify-center text-xs ${r.color || 'bg-slate-800 text-slate-200'}"><i class="fa-solid ${r.icon || 'fa-star'}"></i></span>
+                <div>
+                    <div class="font-bold text-white">${escapeHtml(r.title)}</div>
+                    <div class="text-[10px] text-slate-400">${escapeHtml(r.mission)}</div>
+                </div>
+            </div>
+            ${roleMode === 'custom' ? `<button onclick="removeCustomRole(${idx})" class="text-rose-400 hover:text-rose-300 p-1 text-xs"><i class="fa-solid fa-trash-can"></i></button>` : ''}`;
+        container.appendChild(card);
+    });
+}
+function addCustomRole() {
+    const title = document.getElementById('input-custom-title').value.trim();
+    const icon = document.getElementById('input-custom-icon').value;
+    const mission = document.getElementById('input-custom-mission').value.trim();
+    if (!title || !mission) { showClassroomToast("⚠️ Data Kurang", "Isi nama peran & instruksi."); return; }
+    appState.customRoles.push({ id: 'c' + Date.now(), title, icon, color: 'bg-amber-500/20 text-amber-300 border-amber-500/40', mission });
+    document.getElementById('input-custom-title').value = '';
+    document.getElementById('input-custom-mission').value = '';
+    selectRoleMode('custom');
+    showClassroomToast("✅ Peran Ditambah", `Peran "${title}" disimpan!`);
+}
+function removeCustomRole(index) { appState.customRoles.splice(index, 1); renderActiveRolesList(); }
+function autoGenerateGroups() {
+    const rawText = document.getElementById('input-roster-text').value;
+    const numGroups = Math.max(1, parseInt(document.getElementById('input-num-groups').value) || 4);
+    const maxStudents = Math.max(1, parseInt(document.getElementById('input-students-per-group').value) || 4);
+    appState.allStudentsText = rawText;
+    const names = rawText.split(/[\n,]+/).map(n => n.trim()).filter(n => n.length > 0);
+    if (names.length === 0) { showClassroomToast("⚠️ Data Kosong", "Masukkan daftar nama siswa."); return; }
+    const newGroups = [];
+    for (let i = 0; i < numGroups; i++) newGroups.push({ id: `g_${i+1}_${Date.now()}`, name: `Kelompok ${i+1}`, stars: 20, students: [], pion: 0, presented: false, color: PION_COLORS[i % PION_COLORS.length] });
+    names.forEach((studentName, index) => {
+        const gi = index % numGroups;
+        if (newGroups[gi].students.length < maxStudents) newGroups[gi].students.push({ name: studentName, role: null });
+    });
+    appState.groups = newGroups;
+    renderConfigEditor(); switchConfigTab('tab-manual');
+    showClassroomToast("✨ Kelompok Dibuat!", `${names.length} siswa → ${numGroups} kelompok.`);
+}
+function renderConfigEditor() {
+    const container = document.getElementById('config-group-editor');
+    if (!container) return;
+    container.innerHTML = '';
+    appState.groups.forEach((group, groupIdx) => {
+        const box = document.createElement('div');
+        box.className = 'bg-slate-900 border border-slate-800 rounded-xl p-3 flex flex-col gap-2';
+        const studentNames = group.students.map(s => s.name).join(', ');
+        box.innerHTML = `
+            <div class="flex items-center justify-between gap-2">
+                <input type="text" value="${escapeHtml(group.name)}" data-group-name-idx="${groupIdx}" class="group-name-input bg-slate-950 border border-slate-700 rounded px-2.5 py-1 text-xs text-white font-bold w-1/2">
+                <button onclick="removeGroup(${groupIdx})" class="text-rose-400 hover:text-rose-300 text-xs px-2 py-1"><i class="fa-solid fa-trash-can"></i></button>
+            </div>
+            <div>
+                <label class="text-[10px] text-slate-400 block mb-1">Nama Siswa (pisah koma):</label>
+                <input type="text" value="${escapeHtml(studentNames)}" data-group-names-idx="${groupIdx}" class="group-names-input w-full bg-slate-950 border border-slate-700 rounded px-2.5 py-1 text-xs text-slate-200">
+            </div>`;
+        container.appendChild(box);
+    });
+}
+function addNewGroup() {
+    const newIndex = appState.groups.length + 1;
+    appState.groups.push({ id: 'g' + Date.now(), name: `Kelompok ${newIndex}`, stars: 20, students: [{ name: 'Siswa A', role: null }, { name: 'Siswa B', role: null }, { name: 'Siswa C', role: null }, { name: 'Siswa D', role: null }], pion: 0, presented: false, color: PION_COLORS[(newIndex-1) % PION_COLORS.length] });
+    renderConfigEditor();
+}
+function removeGroup(idx) {
+    if (appState.groups.length > 1) { appState.groups.splice(idx, 1); renderConfigEditor(); }
+    else showClassroomToast("⚠️ Minimal 1 Kelompok", "Tidak bisa hapus semua.");
+}
+function saveConfiguration() {
+    const rosterText = document.getElementById('input-roster-text');
+    if (rosterText) appState.allStudentsText = rosterText.value;
+    const existingRoleMap = {};
+    appState.groups.forEach(g => g.students.forEach(s => { if (s.role) existingRoleMap[s.name] = s.role; }));
+    appState.groups.forEach((group, idx) => {
+        const nameInput = document.querySelector(`.group-name-input[data-group-name-idx="${idx}"]`);
+        const namesInput = document.querySelector(`.group-names-input[data-group-names-idx="${idx}"]`);
+        if (nameInput && namesInput) {
+            group.name = nameInput.value.trim() || `Kelompok ${idx + 1}`;
+            const nameArray = namesInput.value.split(',').map(n => n.trim()).filter(n => n !== '');
+            group.students = nameArray.map(name => ({ name, role: existingRoleMap[name] || null }));
+        }
+        if (!group.color) group.color = PION_COLORS[idx % PION_COLORS.length];
+    });
+    closeConfigModal(); renderTeacherPanel(); renderProjectorView(); renderBoard(); renderPionStatus();
+    pushStateToCloud();
+    showClassroomToast("✅ Tersimpan!", "Pengaturan diperbarui & disinkronkan.");
+}
+
+/* ====================== UTILITIES ====================== */
+function escapeHtml(str) {
+    if (typeof str !== 'string') return '';
+    return str.replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
+}
+
+/* ====================== INIT ====================== */
+window.addEventListener('firebase-ready', () => {
+    firebaseReady = true;
+    const urlRoom = getRoomFromURL();
+    const urlMode = new URLSearchParams(window.location.search).get('mode');
+    const savedRoom = localStorage.getItem('kelasaktif_room');
+
+    const headerRight = document.querySelector('header .flex.items-center.gap-2');
+    if (headerRight && !document.getElementById('btn-share-room')) {
+        const shareBtn = document.createElement('button');
+        shareBtn.id = 'btn-share-room';
+        shareBtn.className = 'px-3 py-1.5 rounded-lg bg-emerald-950/80 hover:bg-emerald-900 border border-emerald-700/60 text-xs font-semibold text-emerald-200 flex items-center gap-1.5 transition shadow-sm';
+        shareBtn.innerHTML = '<i class="fa-solid fa-share-nodes"></i><span>Bagikan Kelas</span>';
+        shareBtn.onclick = () => { if (!roomId) createRoomAsHost(); else openShareModal(); };
+        headerRight.insertBefore(shareBtn, headerRight.firstChild);
+    }
+
+    if (urlMode === 'host' && savedRoom) {
+        roomId = savedRoom; isHost = true;
+        pushStateToCloud(); subscribeToRoom(); showRoomBadge(); updateURL('host');
+    } else if (urlRoom && urlMode === 'client') {
+        joinRoomAsClient(urlRoom);
+    } else if (savedRoom) {
+        joinRoomAsClient(savedRoom);
+    } else {
+        showRoomJoinDialog();
+    }
+});
+
+window.addEventListener('DOMContentLoaded', function() {
+    initBgm();
+    renderTeacherPanel(); renderProjectorView(); updateTimerDisplay();
+    setTimeout(() => { renderBoard(); renderPionStatus(); updatePresentedList(); updateDicePanelUI(); }, 100);
+
+    document.body.addEventListener('click', function initAudio() {
+        getAudioContext();
+        document.body.removeEventListener('click', initAudio);
+    }, { once: true });
+
+    let resizeTimer;
+    window.addEventListener('resize', () => {
+        clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(() => { renderBoard(); }, 300);
+    });
+
+    setTimeout(() => {
+        if (!firebaseReady) showClassroomToast("⚠️ Firebase Belum Siap", "Periksa konfigurasi & koneksi internet.");
+    }, 3000);
+});
+</script>
+</body>
+</html>
